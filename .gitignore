@@ -24,9 +24,14 @@ data/processed/*
 !data/processed/.gitkeep
 !data/processed/dataset_manifest.json
 
-# Trained artifacts are reproducible, large, and stored locally.
-artifacts/models/
-artifacts/registry.json
+# Publish the compact classical models needed by the hosted Streamlit app while
+# keeping the much larger transformer artifact local.
+artifacts/models/*
+!artifacts/models/linear_svm/
+!artifacts/models/linear_svm/**
+!artifacts/models/naive_bayes/
+!artifacts/models/naive_bayes/**
+artifacts/models/minilm_logreg/
 
 # Streamlit local configuration
 .streamlit/secrets.toml

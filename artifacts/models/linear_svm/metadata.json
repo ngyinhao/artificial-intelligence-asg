@@ -1,0 +1,20 @@
+{
+  "artifact_size_bytes": 26698623,
+  "best_params": {
+    "model__C": 0.5
+  },
+  "dataset_sha256": "8727affded9c28e0e3886264c34a53a8a7705d81216bd5d744f943a6cf3d7719",
+  "description": "Calibrated Linear SVM with word unigram/bigram TF-IDF",
+  "kind": "sklearn",
+  "labels": [
+    "Checking or savings account",
+    "Credit card",
+    "Credit reporting or other personal consumer reports",
+    "Debt collection",
+    "Money transfer, virtual currency, or money service",
+    "Mortgage"
+  ],
+  "model_file": "model.joblib",
+  "model_name": "linear_svm",
+  "model_version": "1.0.0"
+}
