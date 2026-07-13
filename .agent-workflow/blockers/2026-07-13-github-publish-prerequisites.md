@@ -12,6 +12,7 @@ On 2026-07-13, the repository was being prepared for its first commit and push t
 - The first `git add --all` attempt failed with `Unable to create '.git/index.lock': Permission denied` because the managed workspace exposed `.git` as read-only inside the default sandbox.
 - The first `git commit` attempt failed with `Author identity unknown`; neither `user.name` nor `user.email` was configured for this repository or globally.
 - The first push to the newly configured `origin` was rejected with `main -> main (fetch first)` because the GitHub repository already contained commits unrelated to the local root commit.
+- Merging the unrelated histories produced the expected add/add conflict in `.gitignore`; the remote contained only GitHub's generic Python ignore template, while the local file contained project-specific exclusions for raw narratives, processed data, trained models, caches, and Streamlit secrets.
 
 ## Impact
 
@@ -29,6 +30,7 @@ This checkout was initialized locally but had never been committed or connected 
 - Retried Git metadata writes through the approved escalated Git command path rather than changing filesystem permissions or bypassing the sandbox.
 - Kept all files staged after the author-identity failure; no partial commit was created.
 - Avoided a force push; fetch and inspect the remote history before reconciling the two roots.
+- Resolve the `.gitignore` conflict in favor of the narrower project-maintained file. This preserves all application-specific privacy and artifact exclusions; the remote generic template did not protect any project path absent from the local rules that is required for this deployment workflow.
 
 ## Workaround or remaining limitation
 
