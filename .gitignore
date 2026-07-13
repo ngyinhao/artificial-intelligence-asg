@@ -1,0 +1,32 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local caches and temporary renders
+.cache/
+tmp/
+
+# CFPB narratives are public but intentionally kept out of version control.
+data/raw/*
+!data/raw/.gitkeep
+!data/raw/download_manifest.json
+data/processed/*
+!data/processed/.gitkeep
+!data/processed/dataset_manifest.json
+
+# Trained artifacts are reproducible, large, and stored locally.
+artifacts/models/
+artifacts/registry.json
+
+# Streamlit local configuration
+.streamlit/secrets.toml

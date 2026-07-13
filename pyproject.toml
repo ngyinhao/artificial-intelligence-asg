@@ -1,0 +1,17 @@
+[project]
+name = "complaint-compass"
+version = "1.0.0"
+description = "Comparative NLP for consumer financial complaint routing"
+requires-python = ">=3.12,<3.13"
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["complaint_compass"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

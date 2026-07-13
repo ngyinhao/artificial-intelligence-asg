@@ -1,0 +1,28 @@
+{
+  "class_counts": {
+    "Checking or savings account": 3000,
+    "Credit card": 3000,
+    "Credit reporting or other personal consumer reports": 3000,
+    "Debt collection": 3000,
+    "Money transfer, virtual currency, or money service": 3000,
+    "Mortgage": 3000
+  },
+  "labels": [
+    "Credit reporting or other personal consumer reports",
+    "Debt collection",
+    "Credit card",
+    "Mortgage",
+    "Checking or savings account",
+    "Money transfer, virtual currency, or money service"
+  ],
+  "processed_rows": 18000,
+  "processed_sha256": "8727affded9c28e0e3886264c34a53a8a7705d81216bd5d744f943a6cf3d7719",
+  "sample_per_class": 3000,
+  "seed": 42,
+  "source_manifest": "data\\raw\\download_manifest.json",
+  "split_counts": {
+    "test": 2700,
+    "train": 12600,
+    "validation": 2700
+  }
+}

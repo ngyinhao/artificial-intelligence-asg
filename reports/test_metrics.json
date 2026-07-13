@@ -1,0 +1,335 @@
+{
+  "linear_svm": {
+    "accuracy": 0.8455555555555555,
+    "artifact_size_bytes": 26698659,
+    "confusion_matrix": [
+      [
+        376,
+        51,
+        16,
+        5,
+        0,
+        2
+      ],
+      [
+        54,
+        360,
+        18,
+        8,
+        6,
+        4
+      ],
+      [
+        17,
+        15,
+        375,
+        6,
+        31,
+        6
+      ],
+      [
+        4,
+        7,
+        4,
+        426,
+        8,
+        1
+      ],
+      [
+        4,
+        2,
+        24,
+        1,
+        383,
+        36
+      ],
+      [
+        1,
+        1,
+        13,
+        2,
+        70,
+        363
+      ]
+    ],
+    "confusion_matrix_path": "C:\\Dev\\artificial-intelligence-asg\\reports\\confusion_matrix_linear_svm.png",
+    "macro_f1": 0.8458359672361064,
+    "macro_precision": 0.8474366556275649,
+    "macro_recall": 0.8455555555555555,
+    "mean_inference_latency_ms": 3.2184575555665003,
+    "per_class": {
+      "Checking or savings account": {
+        "f1-score": 0.8080168776371308,
+        "precision": 0.7690763052208835,
+        "recall": 0.8511111111111112,
+        "support": 450.0
+      },
+      "Credit card": {
+        "f1-score": 0.8333333333333334,
+        "precision": 0.8333333333333334,
+        "recall": 0.8333333333333334,
+        "support": 450.0
+      },
+      "Credit reporting or other personal consumer reports": {
+        "f1-score": 0.8300220750551877,
+        "precision": 0.8245614035087719,
+        "recall": 0.8355555555555556,
+        "support": 450.0
+      },
+      "Debt collection": {
+        "f1-score": 0.8126410835214447,
+        "precision": 0.8256880733944955,
+        "recall": 0.8,
+        "support": 450.0
+      },
+      "Money transfer, virtual currency, or money service": {
+        "f1-score": 0.8422273781902552,
+        "precision": 0.8810679611650486,
+        "recall": 0.8066666666666666,
+        "support": 450.0
+      },
+      "Mortgage": {
+        "f1-score": 0.9487750556792873,
+        "precision": 0.9508928571428571,
+        "recall": 0.9466666666666667,
+        "support": 450.0
+      },
+      "accuracy": 0.8455555555555555,
+      "macro avg": {
+        "f1-score": 0.8458359672361065,
+        "precision": 0.8474366556275651,
+        "recall": 0.8455555555555555,
+        "support": 2700.0
+      },
+      "weighted avg": {
+        "f1-score": 0.8458359672361065,
+        "precision": 0.8474366556275651,
+        "recall": 0.8455555555555555,
+        "support": 2700.0
+      }
+    },
+    "weighted_f1": 0.8458359672361065
+  },
+  "minilm_logreg": {
+    "accuracy": 0.8148148148148148,
+    "artifact_size_bytes": 91609304,
+    "confusion_matrix": [
+      [
+        382,
+        46,
+        12,
+        8,
+        2,
+        0
+      ],
+      [
+        76,
+        332,
+        17,
+        10,
+        10,
+        5
+      ],
+      [
+        22,
+        19,
+        336,
+        7,
+        48,
+        18
+      ],
+      [
+        11,
+        7,
+        4,
+        421,
+        4,
+        3
+      ],
+      [
+        6,
+        4,
+        30,
+        5,
+        362,
+        43
+      ],
+      [
+        1,
+        4,
+        10,
+        2,
+        66,
+        367
+      ]
+    ],
+    "confusion_matrix_path": "C:\\Dev\\artificial-intelligence-asg\\reports\\confusion_matrix_minilm_logreg.png",
+    "macro_f1": 0.8146635221875841,
+    "macro_precision": 0.8168807847700906,
+    "macro_recall": 0.8148148148148148,
+    "mean_inference_latency_ms": 23.913291518520392,
+    "per_class": {
+      "Checking or savings account": {
+        "f1-score": 0.7685774946921444,
+        "precision": 0.7357723577235772,
+        "recall": 0.8044444444444444,
+        "support": 450.0
+      },
+      "Credit card": {
+        "f1-score": 0.7823050058207218,
+        "precision": 0.8215158924205379,
+        "recall": 0.7466666666666667,
+        "support": 450.0
+      },
+      "Credit reporting or other personal consumer reports": {
+        "f1-score": 0.8059071729957806,
+        "precision": 0.7670682730923695,
+        "recall": 0.8488888888888889,
+        "support": 450.0
+      },
+      "Debt collection": {
+        "f1-score": 0.7703016241299304,
+        "precision": 0.8058252427184466,
+        "recall": 0.7377777777777778,
+        "support": 450.0
+      },
+      "Money transfer, virtual currency, or money service": {
+        "f1-score": 0.8284424379232506,
+        "precision": 0.841743119266055,
+        "recall": 0.8155555555555556,
+        "support": 450.0
+      },
+      "Mortgage": {
+        "f1-score": 0.9324473975636767,
+        "precision": 0.9293598233995585,
+        "recall": 0.9355555555555556,
+        "support": 450.0
+      },
+      "accuracy": 0.8148148148148148,
+      "macro avg": {
+        "f1-score": 0.8146635221875841,
+        "precision": 0.8168807847700909,
+        "recall": 0.8148148148148149,
+        "support": 2700.0
+      },
+      "weighted avg": {
+        "f1-score": 0.8146635221875842,
+        "precision": 0.8168807847700906,
+        "recall": 0.8148148148148148,
+        "support": 2700.0
+      }
+    },
+    "weighted_f1": 0.814663522187584
+  },
+  "naive_bayes": {
+    "accuracy": 0.7581481481481481,
+    "artifact_size_bytes": 8218592,
+    "confusion_matrix": [
+      [
+        366,
+        49,
+        23,
+        10,
+        2,
+        0
+      ],
+      [
+        77,
+        301,
+        31,
+        30,
+        10,
+        1
+      ],
+      [
+        24,
+        14,
+        339,
+        11,
+        60,
+        2
+      ],
+      [
+        5,
+        8,
+        7,
+        427,
+        3,
+        0
+      ],
+      [
+        7,
+        2,
+        27,
+        3,
+        408,
+        3
+      ],
+      [
+        2,
+        3,
+        28,
+        5,
+        206,
+        206
+      ]
+    ],
+    "confusion_matrix_path": "C:\\Dev\\artificial-intelligence-asg\\reports\\confusion_matrix_naive_bayes.png",
+    "macro_f1": 0.7524204111730928,
+    "macro_precision": 0.7911399474521478,
+    "macro_recall": 0.7581481481481482,
+    "mean_inference_latency_ms": 0.7820588888824676,
+    "per_class": {
+      "Checking or savings account": {
+        "f1-score": 0.7164179104477612,
+        "precision": 0.5921625544267054,
+        "recall": 0.9066666666666666,
+        "support": 450.0
+      },
+      "Credit card": {
+        "f1-score": 0.7491712707182321,
+        "precision": 0.7450549450549451,
+        "recall": 0.7533333333333333,
+        "support": 450.0
+      },
+      "Credit reporting or other personal consumer reports": {
+        "f1-score": 0.7862513426423201,
+        "precision": 0.760914760914761,
+        "recall": 0.8133333333333334,
+        "support": 450.0
+      },
+      "Debt collection": {
+        "f1-score": 0.727932285368803,
+        "precision": 0.7984084880636605,
+        "recall": 0.6688888888888889,
+        "support": 450.0
+      },
+      "Money transfer, virtual currency, or money service": {
+        "f1-score": 0.622356495468278,
+        "precision": 0.9716981132075472,
+        "recall": 0.4577777777777778,
+        "support": 450.0
+      },
+      "Mortgage": {
+        "f1-score": 0.9123931623931624,
+        "precision": 0.8786008230452675,
+        "recall": 0.9488888888888889,
+        "support": 450.0
+      },
+      "accuracy": 0.7581481481481481,
+      "macro avg": {
+        "f1-score": 0.7524204111730928,
+        "precision": 0.7911399474521478,
+        "recall": 0.7581481481481481,
+        "support": 2700.0
+      },
+      "weighted avg": {
+        "f1-score": 0.7524204111730928,
+        "precision": 0.7911399474521477,
+        "recall": 0.7581481481481481,
+        "support": 2700.0
+      }
+    },
+    "weighted_f1": 0.7524204111730927
+  }
+}
