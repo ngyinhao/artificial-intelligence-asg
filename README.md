@@ -5,6 +5,8 @@ consumer financial complaint narratives into six CFPB product categories. It com
 Naive Bayes, a calibrated linear SVM, and MiniLM sentence embeddings with Logistic
 Regression under one reproducible evaluation protocol.
 
+Try the live app: [ComplaintCompass on Streamlit](https://share.streamlit.io/ngyinhao/artificial-intelligence-asg/main/app.py).
+
 ## Intended use
 
 This is an academic prototype. It must not be used to judge a complaint's merit, make
