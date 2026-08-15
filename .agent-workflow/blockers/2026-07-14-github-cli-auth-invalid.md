@@ -39,3 +39,9 @@ The default managed sandbox could not reach GitHub and misleadingly reported the
 ## Prevention
 
 Check `gh auth status` before staging or committing changes intended for GitHub publication. If the user can authenticate in the same workspace but the sandbox still reports an invalid token, retry the read-only status check with approved network access before asking for repeated login attempts.
+
+## Recurrence — 2026-08-15
+
+While preparing to publish the MiniLM artifact for the hosted Streamlit application, the default sandbox again reported both configured GitHub CLI tokens as invalid. Based on the previously confirmed sandbox/network behavior, retry `gh auth status` with approved network access before concluding that user re-authentication is required.
+
+The approved-network retry succeeded for both configured accounts and confirmed that the active account retained the required repository scope. No user re-authentication was necessary.

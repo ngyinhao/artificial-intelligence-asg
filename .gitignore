@@ -24,14 +24,15 @@ data/processed/*
 !data/processed/.gitkeep
 !data/processed/dataset_manifest.json
 
-# Publish the compact classical models needed by the hosted Streamlit app while
-# keeping the much larger transformer artifact local.
+# Publish all trained models needed by the hosted Streamlit app.
 artifacts/models/*
 !artifacts/models/linear_svm/
 !artifacts/models/linear_svm/**
+!artifacts/models/minilm_logreg/
+!artifacts/models/minilm_logreg/**
+artifacts/models/minilm_logreg/encoder/README.md
 !artifacts/models/naive_bayes/
 !artifacts/models/naive_bayes/**
-artifacts/models/minilm_logreg/
 
 # Streamlit local configuration
 .streamlit/secrets.toml
