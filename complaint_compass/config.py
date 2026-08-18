@@ -47,17 +47,23 @@ PRODUCT_LABELS = (
     "Money transfer, virtual currency, or money service",
 )
 
-MODEL_NAMES = ("naive_bayes", "linear_svm", "minilm_logreg")
+BASE_MODEL_NAMES = ("naive_bayes", "linear_svm", "minilm_logreg")
+ENSEMBLE_MODEL_NAME = "weighted_ensemble"
+MODEL_NAMES = (*BASE_MODEL_NAMES, ENSEMBLE_MODEL_NAME)
 MODEL_DESCRIPTIONS = {
     "naive_bayes": "Multinomial Naive Bayes with word unigram/bigram TF-IDF",
     "linear_svm": "Calibrated Linear SVM with word unigram/bigram TF-IDF",
     "minilm_logreg": (
         "all-MiniLM-L6-v2 sentence embeddings with Logistic Regression"
     ),
+    ENSEMBLE_MODEL_NAME: (
+        "Validation-weighted soft-voting ensemble of Naive Bayes, Linear SVM, "
+        "and MiniLM Logistic Regression"
+    ),
 }
 
 MINILM_MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
-MODEL_VERSION = "1.0.0"
+MODEL_VERSION = "1.1.0"
 RANDOM_SEED = 42
 TARGET_PER_CLASS = 3_000
 CSV_POOL_TARGET_PER_CLASS = TARGET_PER_CLASS + 1_250

@@ -1,4 +1,4 @@
-"""Evaluate registered models once on the sealed test split."""
+"""Evaluate registered models on the exploratory test benchmark."""
 
 from __future__ import annotations
 
@@ -39,10 +39,6 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
 
-def _artifact_size(path: Path) -> int:
-    return sum(item.stat().st_size for item in path.rglob("*") if item.is_file())
-
-
 def _plot_confusion_matrix(model_name: str, matrix: list[list[int]]) -> Path:
     output = REPORTS_DIR / f"confusion_matrix_{model_name}.png"
     figure, axis = plt.subplots(figsize=(11, 9))
@@ -77,7 +73,7 @@ def evaluate_models(
     frame = pd.read_csv(data_path, dtype={"complaint_id": str})
     test = frame.loc[frame["split"] == "test"].copy()
     if test.empty:
-        raise ValueError("The processed dataset has no sealed test records.")
+        raise ValueError("The processed dataset has no test benchmark records.")
     predictor = ComplaintPredictor(artifacts_dir)
     results: dict[str, dict[str, Any]] = {}
     comparison_rows: list[dict[str, Any]] = []
@@ -94,9 +90,7 @@ def evaluate_models(
         metrics["mean_inference_latency_ms"] = float(
             elapsed * 1000 / len(test)
         )
-        metrics["artifact_size_bytes"] = _artifact_size(
-            artifacts_dir / "models" / model_name
-        )
+        metrics["artifact_size_bytes"] = predictor.artifact_size_bytes(model_name)
         metrics["confusion_matrix_path"] = str(
             _plot_confusion_matrix(model_name, metrics["confusion_matrix"])
         )

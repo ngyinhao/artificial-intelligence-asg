@@ -16,5 +16,5 @@
   ],
   "model_file": "model.joblib",
   "model_name": "linear_svm",
-  "model_version": "1.0.0"
+  "model_version": "1.1.0"
 }
