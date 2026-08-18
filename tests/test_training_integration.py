@@ -123,3 +123,8 @@ def test_all_training_paths_create_reloadable_artifacts(
     assert (reports_dir / "model_comparison.csv").exists()
     for model_name in training.MODEL_NAMES:
         assert (reports_dir / f"confusion_matrix_{model_name}.png").exists()
+
+    partial_registry = training.train_models(
+        ("naive_bayes",), data_path=data_path
+    )
+    assert "weighted_ensemble" not in partial_registry["available_models"]

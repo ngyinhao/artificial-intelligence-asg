@@ -12,6 +12,7 @@ import streamlit as st
 
 from complaint_compass.config import (
     ARTIFACTS_DIR,
+    ENSEMBLE_MODEL_NAME,
     MODEL_DESCRIPTIONS,
     PRODUCT_LABELS,
     REPORTS_DIR,
@@ -53,7 +54,7 @@ def _metric_frame(payload: dict[str, dict[str, Any]]) -> pd.DataFrame:
 
 def _load_metrics() -> tuple[str, dict[str, dict[str, Any]]] | None:
     candidates = (
-        ("Sealed test results", REPORTS_DIR / "test_metrics.json"),
+        ("Exploratory test benchmark", REPORTS_DIR / "test_metrics.json"),
         ("Validation results", REPORTS_DIR / "validation_metrics.json"),
     )
     for label, path in candidates:
@@ -74,6 +75,34 @@ def _classify_tab(predictor: ComplaintPredictor) -> None:
         index=list(predictor.available_models).index(predictor.default_model),
         format_func=lambda name: f"{name} — {MODEL_DESCRIPTIONS.get(name, name)}",
     )
+    if model_name == ENSEMBLE_MODEL_NAME:
+        metadata = predictor.registry.get("models", {}).get(model_name, {})
+        weights = metadata.get("weights", {})
+        component_names = metadata.get("base_models", list(weights))
+        st.info(
+            "This research model combines the probability estimates from all three "
+            "base models. Its weights were selected using validation data only."
+        )
+        with st.expander("How the ensemble combines models"):
+            weight_rows = [
+                {
+                    "Model": name,
+                    "Role": MODEL_DESCRIPTIONS.get(name, name),
+                    "Weight": f"{float(weight):.0%}",
+                }
+                for name in component_names
+                if (weight := weights.get(name)) is not None
+            ]
+            if weight_rows:
+                st.dataframe(
+                    pd.DataFrame(weight_rows),
+                    hide_index=True,
+                    width="stretch",
+                )
+            else:
+                st.warning(
+                    "The ensemble metadata does not include displayable weights."
+                )
     narrative = st.text_area(
         "Complaint narrative",
         height=220,

@@ -60,7 +60,7 @@
     "macro_f1": 0.8353457867752859,
     "macro_precision": 0.8364587051284414,
     "macro_recall": 0.8351851851851854,
-    "mean_inference_latency_ms": 1.297300000442192,
+    "mean_inference_latency_ms": 1.4426129999628756,
     "per_class": {
       "Checking or savings account": {
         "f1-score": 0.7956521739130434,
@@ -116,7 +116,7 @@
   },
   "minilm_logreg": {
     "accuracy": 0.8022222222222222,
-    "artifact_size_bytes": 91608592,
+    "artifact_size_bytes": 91609303,
     "best_params": {
       "C": 2.0
     },
@@ -175,7 +175,7 @@
     "macro_f1": 0.8021881695295056,
     "macro_precision": 0.8033884183454328,
     "macro_recall": 0.8022222222222221,
-    "mean_inference_latency_ms": 33.25326299993321,
+    "mean_inference_latency_ms": 18.39845000009518,
     "per_class": {
       "Checking or savings account": {
         "f1-score": 0.7417943107221007,
@@ -290,7 +290,7 @@
     "macro_f1": 0.7395079119033569,
     "macro_precision": 0.7769652941858203,
     "macro_recall": 0.7444444444444445,
-    "mean_inference_latency_ms": 0.29367299983277917,
+    "mean_inference_latency_ms": 0.20792399998754263,
     "per_class": {
       "Checking or savings account": {
         "f1-score": 0.6881143878462913,
@@ -343,5 +343,121 @@
       }
     },
     "weighted_f1": 0.7395079119033569
+  },
+  "weighted_ensemble": {
+    "accuracy": 0.8422222222222222,
+    "artifact_size_bytes": 126527451,
+    "confusion_matrix": [
+      [
+        386,
+        41,
+        18,
+        4,
+        1,
+        0
+      ],
+      [
+        69,
+        351,
+        10,
+        10,
+        8,
+        2
+      ],
+      [
+        22,
+        21,
+        366,
+        3,
+        29,
+        9
+      ],
+      [
+        4,
+        6,
+        6,
+        427,
+        7,
+        0
+      ],
+      [
+        6,
+        2,
+        35,
+        3,
+        375,
+        29
+      ],
+      [
+        0,
+        6,
+        9,
+        4,
+        62,
+        369
+      ]
+    ],
+    "macro_f1": 0.842474905197507,
+    "macro_precision": 0.8443233148114562,
+    "macro_recall": 0.8422222222222223,
+    "mean_inference_latency_ms": 20.0489870000456,
+    "per_class": {
+      "Checking or savings account": {
+        "f1-score": 0.8047210300429185,
+        "precision": 0.7780082987551867,
+        "recall": 0.8333333333333334,
+        "support": 450.0
+      },
+      "Credit card": {
+        "f1-score": 0.8187919463087249,
+        "precision": 0.8243243243243243,
+        "recall": 0.8133333333333334,
+        "support": 450.0
+      },
+      "Credit reporting or other personal consumer reports": {
+        "f1-score": 0.823906083244397,
+        "precision": 0.7926078028747433,
+        "recall": 0.8577777777777778,
+        "support": 450.0
+      },
+      "Debt collection": {
+        "f1-score": 0.8004561003420753,
+        "precision": 0.8220140515222483,
+        "recall": 0.78,
+        "support": 450.0
+      },
+      "Money transfer, virtual currency, or money service": {
+        "f1-score": 0.8591385331781141,
+        "precision": 0.902200488997555,
+        "recall": 0.82,
+        "support": 450.0
+      },
+      "Mortgage": {
+        "f1-score": 0.9478357380688124,
+        "precision": 0.9467849223946785,
+        "recall": 0.9488888888888889,
+        "support": 450.0
+      },
+      "accuracy": 0.8422222222222222,
+      "macro avg": {
+        "f1-score": 0.8424749051975069,
+        "precision": 0.8443233148114561,
+        "recall": 0.8422222222222223,
+        "support": 2700.0
+      },
+      "weighted avg": {
+        "f1-score": 0.842474905197507,
+        "precision": 0.844323314811456,
+        "recall": 0.8422222222222222,
+        "support": 2700.0
+      }
+    },
+    "validation_log_loss": 0.49458931427911534,
+    "weighted_f1": 0.842474905197507,
+    "weights": {
+      "linear_svm": 0.7000000000000001,
+      "minilm_logreg": 0.25,
+      "naive_bayes": 0.05
+    }
   }
 }

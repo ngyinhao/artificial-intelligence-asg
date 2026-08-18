@@ -48,18 +48,25 @@ counts, labels, seed, and SHA-256 checksums.
 
 ## Models
 
-Train and compare:
+Train and compare three base models:
 
 1. Multinomial Naive Bayes with word unigram/bigram TF-IDF.
 2. Calibrated Linear SVM with word unigram/bigram TF-IDF.
 3. `sentence-transformers/all-MiniLM-L6-v2` embeddings with Logistic Regression.
 
+Construct a fourth optional `weighted_ensemble` model by aligning the six-class
+validation probabilities from all three base models and selecting positive soft-voting
+weights in increments of 0.05. Rank candidates by macro-F1, multiclass log loss,
+distance from equal weighting, and deterministic lexical order. The ensemble stores
+only metadata and reuses the three base artifacts at inference time.
+
 Use five-fold stratified cross-validation on the training split. Tune Naive Bayes
 `alpha` over 0.1, 0.5, and 1.0, and tune the SVM and Logistic Regression `C` over 0.5,
-1.0, and 2.0. Evaluate on validation data, select the application default by macro-F1,
-and break differences of 0.01 or less using artifact size followed by inference latency.
-Refit each finalized model with training plus validation data, then evaluate once on the
-sealed test set.
+1.0, and 2.0. Evaluate on validation data and retain the calibrated Linear SVM as the
+application default while exposing the ensemble as an exploratory option. Refit each
+finalized base model with training plus validation data. Because the original test
+results were examined before this post-hoc ensemble was defined, report the four-model
+test comparison as an exploratory benchmark rather than a newly sealed evaluation.
 
 Macro-F1 is the primary metric. Also report accuracy, macro precision, macro recall,
 weighted F1, per-class scores, confusion matrices, artifact size, cross-validation
@@ -70,7 +77,7 @@ variation, and inference latency.
 The Streamlit application provides:
 
 - A complaint-classification view accepting 20 to 2,000 English characters.
-- A model selector defaulting to the validation-selected model.
+- A four-model selector defaulting to the calibrated Linear SVM.
 - Predicted category, calibrated confidence, and top-three candidates.
 - A model-comparison view backed by generated aggregate reports.
 - A data and limitations view with the intended-use disclaimer.

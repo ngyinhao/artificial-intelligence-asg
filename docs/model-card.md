@@ -2,14 +2,15 @@
 
 ## Model family
 
-ComplaintCompass registers three multiclass classifiers trained on the same six-label
-dataset:
+ComplaintCompass registers three multiclass base classifiers trained on the same
+six-label dataset and one optional ensemble:
 
 | Registry name | Representation | Classifier | Role |
 |---|---|---|---|
 | `naive_bayes` | Word unigram/bigram TF-IDF | Multinomial Naive Bayes | Interpretable baseline |
 | `linear_svm` | Word unigram/bigram TF-IDF | Calibrated Linear SVM | Strong sparse-text method |
 | `minilm_logreg` | Normalized MiniLM sentence embeddings | Logistic Regression | Semantic transformer representation |
+| `weighted_ensemble` | Aligned probabilities from all three base models | Validation-weighted soft voting | Exploratory hybrid model |
 
 ## Intended use
 
@@ -27,11 +28,17 @@ remains responsible for interpreting or acting on a suggestion.
 
 ## Training and selection
 
-All models use the same training, validation, and sealed-test records. Hyperparameters
-are selected through five-fold stratified cross-validation on training data. Validation
-macro-F1 selects the application default; near-ties favor the smaller and faster model.
-Final models are refitted with training plus validation records before one sealed-test
-evaluation.
+All base models use the same training and validation records. Hyperparameters are
+selected through five-fold stratified cross-validation on training data. Validation
+probabilities select positive ensemble weights on a 0.05 grid using macro-F1, log loss,
+distance from equal weighting, and deterministic tie-breaking. Final base models are
+refitted with training plus validation records. The Linear SVM remains the application
+default and the ensemble remains optional.
+
+The original test results were already examined before the ensemble was proposed.
+Consequently, the expanded four-model comparison is an exploratory benchmark rather
+than a fresh sealed evaluation. A future untouched holdout would be required for a
+strong confirmatory claim about the ensemble.
 
 ## Metrics
 
@@ -42,19 +49,23 @@ Generated metrics are stored in:
 - `reports/model_comparison.csv`
 - `reports/confusion_matrix_<model>.png`
 
-The primary metric is macro-F1. The sealed test set contains 2,700 complaints, with 450
-examples from each class. Results from `reports/test_metrics.json` are:
+The primary metric is macro-F1. The exploratory test benchmark contains 2,700
+complaints, with 450 examples from each class. Results from
+`reports/test_metrics.json` are:
 
 | Model | Macro-F1 | Accuracy | Macro precision | Macro recall | Mean latency | Artifact size |
 |---|---:|---:|---:|---:|---:|---:|
-| `linear_svm` | 0.8458 | 0.8456 | 0.8474 | 0.8456 | 3.22 ms | 25.46 MiB |
-| `minilm_logreg` | 0.8147 | 0.8148 | 0.8169 | 0.8148 | 23.91 ms | 87.37 MiB |
-| `naive_bayes` | 0.7524 | 0.7581 | 0.7911 | 0.7581 | 0.78 ms | 7.84 MiB |
+| `weighted_ensemble` | 0.8513 | 0.8511 | 0.8532 | 0.8511 | 19.87 ms | 120.67 MiB |
+| `linear_svm` | 0.8458 | 0.8456 | 0.8474 | 0.8456 | 1.83 ms | 25.46 MiB |
+| `minilm_logreg` | 0.8147 | 0.8148 | 0.8169 | 0.8148 | 21.61 ms | 87.37 MiB |
+| `naive_bayes` | 0.7524 | 0.7581 | 0.7911 | 0.7581 | 0.39 ms | 7.84 MiB |
 
-The calibrated Linear SVM is the registered default because it achieved the highest
-validation macro-F1 and also produced the strongest sealed-test result. Its best
-cross-validated setting was `C=0.5`. MiniLM Logistic Regression selected `C=2.0`, and
-Naive Bayes selected `alpha=0.1`.
+The ensemble selected weights of 0.05 for Naive Bayes, 0.70 for Linear SVM, and 0.25
+for MiniLM Logistic Regression. It reached the highest exploratory macro-F1, but this
+small post-hoc difference is not confirmatory evidence. The calibrated Linear SVM
+remains the registered default because it is faster, smaller, and was selected before
+the ensemble experiment. Its best cross-validated setting was `C=0.5`; MiniLM Logistic
+Regression selected `C=2.0`, and Naive Bayes selected `alpha=0.1`.
 
 The clearest recurring confusion for the default model is between checking/savings and
 credit-card complaints, while mortgage is its strongest class (F1 0.9488). These results

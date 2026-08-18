@@ -1,5 +1,5 @@
 {
-  "artifact_size_bytes": 91608592,
+  "artifact_size_bytes": 91609303,
   "best_params": {
     "C": 2.0
   },
@@ -18,5 +18,5 @@
     "Mortgage"
   ],
   "model_name": "minilm_logreg",
-  "model_version": "1.0.0"
+  "model_version": "1.1.0"
 }

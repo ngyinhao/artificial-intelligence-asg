@@ -3,7 +3,8 @@
 ComplaintCompass is a single-contributor NLP research prototype that routes English
 consumer financial complaint narratives into six CFPB product categories. It compares
 Naive Bayes, a calibrated linear SVM, and MiniLM sentence embeddings with Logistic
-Regression under one reproducible evaluation protocol.
+Regression under one reproducible evaluation protocol, plus a validation-weighted
+soft-voting ensemble that combines all three probability distributions.
 
 Try the live app: [ComplaintCompass on Streamlit](https://share.streamlit.io/ngyinhao/artificial-intelligence-asg/main/app.py).
 
@@ -51,7 +52,7 @@ larger candidate target, or a larger `--max-range-chunks` run skips completed ra
 - `data/processed/dataset_manifest.json`: label/split counts and dataset checksum.
 - `artifacts/registry.json`: available artifacts and default model.
 - `reports/validation_metrics.json`: model-selection results.
-- `reports/test_metrics.json`: sealed-test results.
+- `reports/test_metrics.json`: exploratory benchmark results for all four models.
 - `reports/model_comparison.csv`: compact comparison used by the interface.
 
 See [the implementation plan](docs/nlp-implementation-plan.md),
