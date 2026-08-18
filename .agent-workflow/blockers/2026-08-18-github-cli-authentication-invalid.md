@@ -30,9 +30,10 @@ no longer accepted by GitHub.
 
 ## Workaround or remaining limitation
 
-Continue all repository-local work. Before opening the pull request, re-authenticate
-with `gh auth login -h github.com`, verify with `gh auth status`, and then retry the
-push/pull-request workflow. Do not store credentials in this incident note.
+Git's separate credential-manager session remained valid, so the feature branch was
+successfully pushed with `git push -u origin agent/weighted-hybrid-ensemble`. GitHub
+CLI API operations still require `gh auth login -h github.com` before they can be used
+as a fallback for pull-request creation. Do not store credentials in this incident note.
 
 ## Prevention
 
