@@ -17,6 +17,7 @@ from sklearn.base import clone
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import f1_score, log_loss
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
@@ -26,6 +27,7 @@ from .config import (
     ARTIFACTS_DIR,
     BASE_MODEL_NAMES,
     DATASET_MANIFEST_PATH,
+    ENSEMBLE_MODEL_NAME,
     FUSION_MODEL_NAME,
     MINILM_MODEL_ID,
     MODEL_DESCRIPTIONS,
@@ -34,6 +36,7 @@ from .config import (
     MODELS_DIR,
     PROCESSED_DATA_PATH,
     PRODUCT_LABELS,
+    PROJECT_ROOT,
     RANDOM_SEED,
     REGISTRY_PATH,
     VALIDATION_METRICS_PATH,
@@ -55,6 +58,109 @@ class TrainingOutcome:
     metrics: dict[str, Any]
     validation_probabilities: np.ndarray
     classes: np.ndarray
+
+
+def align_probabilities(
+    probabilities: np.ndarray,
+    classes: Sequence[str],
+    *,
+    labels: Sequence[str] = PRODUCT_LABELS,
+) -> np.ndarray:
+    """Return a probability matrix reordered to a canonical label sequence."""
+
+    matrix = np.asarray(probabilities, dtype=float)
+    class_names = [str(value) for value in classes]
+    label_names = [str(value) for value in labels]
+    if matrix.ndim != 2 or matrix.shape[1] != len(class_names):
+        raise TrainingError("Probability columns do not match the supplied classes.")
+    if len(set(class_names)) != len(class_names) or set(class_names) != set(label_names):
+        raise TrainingError("Model classes do not match the canonical product labels.")
+    return matrix[:, [class_names.index(label) for label in label_names]]
+
+
+def select_ensemble_weights(
+    y_true: Sequence[str],
+    probabilities_by_model: dict[str, np.ndarray],
+    classes_by_model: dict[str, Sequence[str]],
+    *,
+    step: float = 0.05,
+) -> dict[str, Any]:
+    """Select deterministic positive soft-voting weights on validation data."""
+
+    if tuple(probabilities_by_model) != BASE_MODEL_NAMES:
+        raise TrainingError(
+            f"Ensemble probabilities must use base models in order: {BASE_MODEL_NAMES}."
+        )
+    if set(classes_by_model) != set(BASE_MODEL_NAMES):
+        raise TrainingError("Ensemble class mappings are incomplete.")
+    units = round(1.0 / step)
+    if units < len(BASE_MODEL_NAMES) or not np.isclose(units * step, 1.0):
+        raise ValueError("Weight step must divide one and allow positive weights.")
+
+    aligned = {
+        name: align_probabilities(
+            probabilities_by_model[name], classes_by_model[name]
+        )
+        for name in BASE_MODEL_NAMES
+    }
+    shapes = {matrix.shape for matrix in aligned.values()}
+    if len(shapes) != 1 or next(iter(shapes))[0] != len(y_true):
+        raise TrainingError("Base validation probability matrices are incompatible.")
+
+    label_array = np.asarray(PRODUCT_LABELS, dtype=str)
+    sorted_labels = sorted(PRODUCT_LABELS)
+    log_loss_columns = [list(PRODUCT_LABELS).index(label) for label in sorted_labels]
+    best: dict[str, Any] | None = None
+    for first_units in range(1, units - 1):
+        for second_units in range(1, units - first_units):
+            third_units = units - first_units - second_units
+            if third_units < 1:
+                continue
+            values = (
+                round(first_units * step, 10),
+                round(second_units * step, 10),
+                round(third_units * step, 10),
+            )
+            combined = sum(
+                weight * aligned[name]
+                for name, weight in zip(BASE_MODEL_NAMES, values, strict=True)
+            )
+            predictions = label_array[np.argmax(combined, axis=1)]
+            macro_f1 = float(
+                f1_score(y_true, predictions, average="macro", zero_division=0)
+            )
+            validation_log_loss = float(
+                log_loss(
+                    y_true,
+                    combined[:, log_loss_columns],
+                    labels=sorted_labels,
+                )
+            )
+            equal_distance = float(
+                sum((weight - (1.0 / 3.0)) ** 2 for weight in values)
+            )
+            candidate = {
+                "weights": dict(zip(BASE_MODEL_NAMES, values, strict=True)),
+                "macro_f1": macro_f1,
+                "log_loss": validation_log_loss,
+                "equal_distance": equal_distance,
+                "probabilities": combined,
+                "predictions": predictions,
+            }
+            rank = (
+                -round(macro_f1, 12),
+                round(validation_log_loss, 12),
+                round(equal_distance, 12),
+                values,
+            )
+            if best is None or rank < best["rank"]:
+                candidate["rank"] = rank
+                best = candidate
+
+    if best is None:
+        raise TrainingError("No valid positive ensemble weight combinations were found.")
+    best.pop("rank")
+    return best
 
 
 def _tfidf() -> TfidfVectorizer:
@@ -104,6 +210,15 @@ def _mean_latency_ms(operation: Callable[[], Any], sample_size: int) -> float:
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def _portable_path(path: Path) -> str:
+    """Prefer a repository-relative artifact reference when possible."""
+
+    try:
+        return path.relative_to(PROJECT_ROOT).as_posix()
+    except ValueError:
+        return str(path)
 
 
 def _save_sklearn_artifact(
@@ -366,14 +481,45 @@ TRAINERS: dict[
 }
 
 
-def _align_probabilities(outcome: TrainingOutcome) -> np.ndarray:
-    indices = []
-    classes = outcome.classes.tolist()
-    for label in PRODUCT_LABELS:
-        if label not in classes:
-            raise TrainingError(f"Validation probabilities are missing class '{label}'.")
-        indices.append(classes.index(label))
-    return outcome.validation_probabilities[:, indices]
+def _save_ensemble_artifact(
+    selection: dict[str, Any],
+    *,
+    dataset_sha256: str,
+) -> dict[str, Any]:
+    """Persist a lightweight fixed-weight ensemble definition."""
+
+    model_dir = MODELS_DIR / ENSEMBLE_MODEL_NAME
+    model_dir.mkdir(parents=True, exist_ok=True)
+    metadata_path = model_dir / "metadata.json"
+    metadata = {
+        "model_name": ENSEMBLE_MODEL_NAME,
+        "model_version": MODEL_VERSION,
+        "kind": "ensemble",
+        "description": MODEL_DESCRIPTIONS[ENSEMBLE_MODEL_NAME],
+        "base_models": list(BASE_MODEL_NAMES),
+        "weights": {
+            name: float(selection["weights"][name]) for name in BASE_MODEL_NAMES
+        },
+        "labels": list(PRODUCT_LABELS),
+        "dataset_sha256": dataset_sha256,
+        "selection_metric": "macro_f1",
+        "validation_macro_f1": float(selection["macro_f1"]),
+        "validation_log_loss": float(selection["log_loss"]),
+        "weight_search_step": 0.05,
+    }
+    _write_json(metadata_path, metadata)
+    base_size = sum(_artifact_size(MODELS_DIR / name) for name in BASE_MODEL_NAMES)
+    for _ in range(3):
+        measured_size = base_size + _artifact_size(model_dir)
+        if metadata.get("artifact_size_bytes") == measured_size:
+            break
+        metadata["artifact_size_bytes"] = measured_size
+        _write_json(metadata_path, metadata)
+    return metadata
+
+
+def _align_outcome_probabilities(outcome: TrainingOutcome) -> np.ndarray:
+    return align_probabilities(outcome.validation_probabilities, outcome.classes)
 
 
 def _fit_adaptive_fusion(
@@ -388,7 +534,8 @@ def _fit_adaptive_fusion(
             f"models; missing {sorted(missing)}. Run training with --all."
         )
     probability_cube = np.stack(
-        [_align_probabilities(outcomes[name]) for name in BASE_MODEL_NAMES], axis=0
+        [_align_outcome_probabilities(outcomes[name]) for name in BASE_MODEL_NAMES],
+        axis=0,
     )
     configuration, fused_probabilities = fit_adaptive_fusion(
         validation["label"].tolist(),
@@ -495,20 +642,56 @@ def train_models(
             )
 
     outcomes: dict[str, TrainingOutcome] = {}
-    requested = tuple(model_names)
-    if FUSION_MODEL_NAME in requested and not set(BASE_MODEL_NAMES).issubset(requested):
+    requested = tuple(dict.fromkeys(model_names))
+    combination_requested = {
+        ENSEMBLE_MODEL_NAME,
+        FUSION_MODEL_NAME,
+    }.intersection(requested)
+    if combination_requested and not set(BASE_MODEL_NAMES).issubset(requested):
         raise TrainingError(
-            "Adaptive fusion must be trained with all base models in the same run. "
-            "Use `python -m complaint_compass.train --all`."
+            "Combination models must be trained with all base models in the same "
+            "run. Use `python -m complaint_compass.train --all`."
         )
 
     for model_name in requested:
-        if model_name == FUSION_MODEL_NAME:
+        if model_name in (ENSEMBLE_MODEL_NAME, FUSION_MODEL_NAME):
             continue
         print(f"Training {model_name}...")
         outcome = TRAINERS[model_name](train, validation, dataset_sha256)
         outcomes[model_name] = outcome
         existing[model_name] = outcome.metrics
+        _write_json(VALIDATION_METRICS_PATH, existing)
+
+    if ENSEMBLE_MODEL_NAME in requested:
+        print(f"Selecting {ENSEMBLE_MODEL_NAME} weights...")
+        selection = select_ensemble_weights(
+            validation["label"].tolist(),
+            {
+                name: outcomes[name].validation_probabilities
+                for name in BASE_MODEL_NAMES
+            },
+            {name: outcomes[name].classes for name in BASE_MODEL_NAMES},
+        )
+        ensemble_metadata = _save_ensemble_artifact(
+            selection, dataset_sha256=dataset_sha256
+        )
+        ensemble_metrics = classification_metrics(
+            validation["label"], selection["predictions"], labels=PRODUCT_LABELS
+        )
+        ensemble_metrics.update(
+            {
+                "weights": selection["weights"],
+                "validation_log_loss": selection["log_loss"],
+                "artifact_size_bytes": ensemble_metadata["artifact_size_bytes"],
+                "mean_inference_latency_ms": float(
+                    sum(
+                        outcomes[name].metrics["mean_inference_latency_ms"]
+                        for name in BASE_MODEL_NAMES
+                    )
+                ),
+            }
+        )
+        existing[ENSEMBLE_MODEL_NAME] = ensemble_metrics
         _write_json(VALIDATION_METRICS_PATH, existing)
 
     if FUSION_MODEL_NAME in requested:
@@ -520,6 +703,11 @@ def train_models(
 
     registry_models: dict[str, Any] = {}
     for model_name in existing:
+        if (
+            model_name in (ENSEMBLE_MODEL_NAME, FUSION_MODEL_NAME)
+            and model_name not in requested
+        ):
+            continue
         metadata_path = MODELS_DIR / model_name / "metadata.json"
         if not metadata_path.exists():
             continue
@@ -533,7 +721,7 @@ def train_models(
     registry = {
         "model_version": MODEL_VERSION,
         "dataset_sha256": dataset_sha256,
-        "dataset_manifest": str(DATASET_MANIFEST_PATH),
+        "dataset_manifest": _portable_path(DATASET_MANIFEST_PATH),
         "default_model": default_model,
         "available_models": sorted(registry_models),
         "models": registry_models,

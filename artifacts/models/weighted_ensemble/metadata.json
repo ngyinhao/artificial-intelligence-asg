@@ -1,12 +1,12 @@
 {
-  "artifact_size_bytes": 126527472,
+  "artifact_size_bytes": 126527438,
   "base_models": [
     "naive_bayes",
     "linear_svm",
     "minilm_logreg"
   ],
   "dataset_sha256": "8727affded9c28e0e3886264c34a53a8a7705d81216bd5d744f943a6cf3d7719",
-  "description": "Validation-weighted soft-voting ensemble of Naive Bayes, Linear SVM, and MiniLM Logistic Regression",
+  "description": "Validation-weighted soft-voting ensemble of all three base models",
   "kind": "ensemble",
   "labels": [
     "Credit reporting or other personal consumer reports",
@@ -19,7 +19,7 @@
   "model_name": "weighted_ensemble",
   "model_version": "1.1.0",
   "selection_metric": "macro_f1",
-  "validation_log_loss": 0.49458931427911534,
+  "validation_log_loss": 0.4945893142791154,
   "validation_macro_f1": 0.842474905197507,
   "weight_search_step": 0.05,
   "weights": {

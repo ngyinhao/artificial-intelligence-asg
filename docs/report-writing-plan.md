@@ -4,7 +4,7 @@
 
 Write the report as an evidence-led account of **ComplaintCompass: Comparative NLP for Automated Consumer Financial Complaint Routing**. The report should make one coherent argument:
 
-> Consumer financial complaints can be routed into six CFPB product categories with useful accuracy, but model choice involves a trade-off between predictive performance, speed, size, and evidential strength. The calibrated Linear SVM is the appropriate application default, while the implemented Adaptive Reliability-Uncertainty Fusion (ARUF) algorithm is a competitive exploratory result rather than a confirmed improvement.
+> Consumer financial complaints can be routed into six CFPB product categories with useful accuracy, but model choice involves a trade-off between predictive performance, speed, size, and evidential strength. The validation-weighted ensemble is the evidence-selected application default, while the implemented Adaptive Reliability-Uncertainty Fusion (ARUF) algorithm is a competitive exploratory result rather than a confirmed improvement.
 
 Every technical claim should be supported by one of the following:
 
@@ -148,7 +148,7 @@ flowchart TB
         P["Train and tune three candidates:<br/>1. TF-IDF + Multinomial Naive Bayes<br/>2. TF-IDF + calibrated Linear SVM<br/>3. MiniLM + Logistic Regression"]
         Q["Select hyperparameters using<br/>training/CV evidence"]
         R["Evaluate base candidates on validation set"]
-        S["Search soft-voting weights<br/>using validation probabilities"]
+        S["Fit fixed weighted voting and ARUF<br/>using validation probabilities"]
         T["Refit final base models using<br/>training + validation data"]
         U["Save model artifacts, metadata,<br/>labels, and registry"]
         V["Exploratory evaluation on test set"]
@@ -174,7 +174,7 @@ flowchart TB
         Y{"Input contains 20–2,000 valid characters?"}
         Z["Show validation guidance"]
         AA["Normalize input in memory"]
-        AB["Choose registered model<br/>Linear SVM is default"]
+        AB["Choose registered model<br/>Weighted ensemble is default"]
         AC["Load saved preprocessing<br/>and model artifacts"]
         AD["Generate aligned six-class probabilities"]
         AE["Display predicted category, confidence,<br/>and top-three candidates"]
@@ -200,7 +200,7 @@ The diagram should make these distinctions explicit:
 - **The ensemble consumes aligned probabilities:** it combines the three base-model outputs rather than transforming raw text independently.
 - **Final artifacts are created before application use:** the Streamlit application loads saved artifacts and never retrains at startup.
 - **Inference is local and non-persistent:** submitted text is normalized and classified in memory without being logged or saved.
-- **The Linear SVM remains the default:** the ensemble is selectable but its higher test score is post-hoc and exploratory.
+- **The weighted ensemble is the default:** it has the highest validation macro-F1; its test score is still described as exploratory because the broader combination analysis is post-hoc.
 
 Immediately after the figure, explain the workflow in three short paragraphs:
 
@@ -208,7 +208,7 @@ Immediately after the figure, explain the workflow in three short paragraphs:
 2. **Model-development paragraph:** describe shared data, five-fold stratified cross-validation, model-specific tuning, validation-based ensemble weighting, refitting, artifact storage, and metric generation.
 3. **Inference paragraph:** trace a single complaint from input validation through normalization, registered-model loading, probability generation, and presentation of the predicted and alternative categories.
 
-Add a note beneath the figure stating that the original base-model test results had already been inspected before the ensemble was proposed. The ensemble weights use validation data, but the expanded four-model test comparison must still be described as exploratory because the broader analysis was defined post-hoc.
+Add a note beneath the figure stating that the original base-model test results had already been inspected before the combination analysis. Both combination methods use validation data, but the expanded five-model test comparison must still be described as exploratory because the broader analysis was defined post-hoc.
 
 #### Description and analysis of dataset
 
@@ -227,7 +227,7 @@ Report the following concrete details from `docs/dataset-card.md` and `data/proc
 
 Include a class/split-count table. Add only aggregate descriptive charts; do not reproduce raw complaint narratives because they may contain sensitive or identifying context even after source scrubbing.
 
-Clarify that the test set was originally sealed, but its results were viewed before ARUF was defined. Therefore, the later four-method test comparison is exploratory rather than a fresh confirmatory test.
+Clarify that the test set was originally sealed, but its results were viewed before ARUF was defined. Therefore, the later five-method test comparison is exploratory rather than a fresh confirmatory test.
 
 #### Algorithm selection & description of algorithms
 
@@ -236,9 +236,10 @@ Use a consistent mini-structure for each model: representation, classifier, tune
 1. **Multinomial Naive Bayes:** TF-IDF word unigrams/bigrams; baseline; tune `alpha` over 0.1, 0.5, and 1.0.
 2. **Calibrated Linear SVM:** TF-IDF word unigrams/bigrams; strong sparse-text classifier with calibrated probabilities; tune `C` over 0.5, 1.0, and 2.0.
 3. **MiniLM + Logistic Regression:** `all-MiniLM-L6-v2` sentence embeddings followed by Logistic Regression; semantic representation; tune `C` over 0.5, 1.0, and 2.0.
-4. **ARUF:** align probabilities from the three base models; weight them by per-class validation F1 and per-input entropy-derived confidence; apply a bounded agreement multiplier; and select `alpha`, `beta`, and `gamma` using validation macro-F1, class-order-safe log loss, and deterministic tie-breaking.
+4. **Weighted ensemble:** align the three probability matrices and select positive global soft-voting weights on a 0.05 validation grid.
+5. **ARUF:** align probabilities from the three base models; weight them by per-class validation F1 and per-input entropy-derived confidence; apply a bounded agreement multiplier; and select `alpha`, `beta`, and `gamma` using validation macro-F1, class-order-safe log loss, and deterministic tie-breaking.
 
-Explain five-fold stratified cross-validation, hyperparameter selection on training data, ARUF fitting on validation probabilities from training-only base models, and final refitting of base models on training plus validation data. State that the highest validation macro-F1 determines the default, with size and latency used only for exact ties. Linear SVM remains the default and also outperforms ARUF on the exploratory test benchmark.
+Explain five-fold stratified cross-validation, hyperparameter selection on training data, combination fitting on validation probabilities from training-only base models, and final refitting of base models on training plus validation data. State that the highest validation macro-F1 determines the default, with size and latency used only for exact ties. The weighted ensemble is the default and also has the highest exploratory test macro-F1.
 
 #### Evaluation metrics
 
@@ -264,7 +265,7 @@ Present evidence before interpretation. Recommended order:
 
 1. A model-comparison table derived from `reports/model_comparison.csv`.
 2. A validation/CV table containing selected hyperparameters and validation macro-F1.
-3. The four existing confusion-matrix figures from `reports/`.
+3. The five confusion-matrix figures from `reports/`.
 4. A compact per-class comparison, focusing on the default model and the most informative differences.
 5. Optional interface screenshots showing valid input, prediction, top-three candidates, model comparison, and limitations.
 
@@ -272,19 +273,20 @@ The central exploratory test results are:
 
 | Model | Macro-F1 | Accuracy | Mean latency | Artifact size |
 |---|---:|---:|---:|---:|
-| Linear SVM | 0.8458 | 0.8456 | 2.25 ms | 25.46 MiB |
-| ARUF | 0.8363 | 0.8363 | 24.55 ms | 120.67 MiB |
-| MiniLM + Logistic Regression | 0.8147 | 0.8148 | 18.23 ms | 87.37 MiB |
-| Naive Bayes | 0.7524 | 0.7581 | 0.50 ms | 7.84 MiB |
+| Weighted ensemble | 0.8513 | 0.8511 | 20.71 ms | 120.67 MiB |
+| Linear SVM | 0.8458 | 0.8456 | 2.22 ms | 25.46 MiB |
+| ARUF | 0.8363 | 0.8363 | 24.45 ms | 120.67 MiB |
+| MiniLM + Logistic Regression | 0.8147 | 0.8148 | 18.09 ms | 87.37 MiB |
+| Naive Bayes | 0.7524 | 0.7581 | 0.51 ms | 7.84 MiB |
 
-Label this table **exploratory test benchmark** because ARUF was designed after the original test results had been inspected. Report that the target macro-F1 of at least 0.75 was met by all four evaluated methods, but do not treat this threshold alone as proof of real-world fitness.
+Label this table **exploratory test benchmark** because the combination analysis was completed after the original test results had been inspected. Report that the target macro-F1 of at least 0.75 was met by all five evaluated methods, but do not treat this threshold alone as proof of real-world fitness.
 
 #### Discussion/Interpretation
 
 Answer the objectives rather than repeating the table:
 
 - Explain why ARUF improved on MiniLM and Naive Bayes but remained 0.0095 macro-F1 below Linear SVM; a new algorithm is not guaranteed to outperform its strongest member.
-- Explain why Linear SVM is the preferred default: highest validation and test macro-F1, substantially lower latency, and much smaller effective artifacts than ARUF.
+- Explain why the weighted ensemble is the required evidence-selected default: highest validation macro-F1 and highest exploratory test macro-F1. Contrast this with Linear SVM's much lower latency and smaller artifact.
 - Contrast Naive Bayes's speed and small size with its lower macro-F1 and uneven class recall.
 - Explain that MiniLM's semantic representation did not outperform the tuned sparse Linear SVM on this bounded task, while carrying higher latency and storage cost.
 - Analyse the strongest and weakest class behaviours using the confusion matrices. Mortgage is consistently strongest; checking/savings and credit-card complaints are a recurring confusion pair for the default model.
@@ -305,7 +307,7 @@ Use one short paragraph per objective, stating the evidence that shows whether i
 - the working Streamlit interface;
 - the reproducibility, testing, privacy, and documentation controls.
 
-End with a measured overall conclusion: the project demonstrates technically useful routing performance in the studied setting, with Linear SVM offering the best current application trade-off.
+End with a measured overall conclusion: the project demonstrates technically useful routing performance in the studied setting, with the weighted ensemble selected for predictive performance and Linear SVM remaining the efficient alternative.
 
 #### Limitations and Future Works
 
@@ -412,7 +414,7 @@ When two files disagree, investigate and resolve the discrepancy before writing.
 - [ ] Model names, features, hyperparameters, and evaluation protocol match the implementation.
 - [ ] Validation, cross-validation, and exploratory test results are clearly distinguished.
 - [ ] Ensemble test results are labelled exploratory/post-hoc.
-- [ ] Linear SVM is explained as the application default without claiming it has the highest test score.
+- [ ] The weighted ensemble is explained as the validation-selected application default, while Linear SVM is presented as the efficient alternative.
 - [ ] Tables and figures can be regenerated from the final repository state.
 - [ ] Limitations and ethical boundaries are explicit.
 

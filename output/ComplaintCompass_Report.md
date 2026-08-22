@@ -25,9 +25,9 @@
 
 Consumer complaint narratives are unstructured accounts that must be converted into actionable routing information before downstream review can begin. Natural language processing (NLP) frames this requirement as supervised multiclass text classification: a model receives a narrative and assigns one label from a predefined product taxonomy. The Consumer Financial Protection Bureau (CFPB) makes complaint data available for public use and notes that published narratives are consumers' own descriptions, shared only when consumers opt in and after steps to remove personal information (Consumer Financial Protection Bureau \[CFPB\], 2026). These characteristics make the database useful for an academic routing study while also requiring caution about privacy, representativeness, and verification.
 
-ComplaintCompass is an English-language academic prototype that compares complementary representations under one deterministic evaluation protocol. The base approaches are term frequency-inverse document frequency (TF-IDF) word unigrams and bigrams with Multinomial Naive Bayes; the same sparse representation with a calibrated Linear Support Vector Machine (SVM); and all-MiniLM-L6-v2 sentence embeddings with Logistic Regression. A fourth method, Adaptive Reliability-Uncertainty Fusion (ARUF), combines the three aligned probability vectors using validation-derived class reliability, per-input uncertainty, and prediction agreement. The application is intended to assist an analyst or evaluator by showing a predicted category, calibrated confidence, and three leading candidates. It does not judge complaint merit, determine legal or financial outcomes, or replace accountable human review.
+ComplaintCompass is an English-language academic prototype that compares complementary representations under one deterministic evaluation protocol. The base approaches are term frequency-inverse document frequency (TF-IDF) word unigrams and bigrams with Multinomial Naive Bayes; the same sparse representation with a calibrated Linear Support Vector Machine (SVM); and all-MiniLM-L6-v2 sentence embeddings with Logistic Regression. A validation-weighted soft-voting ensemble combines those three probability vectors using fixed global weights. Adaptive Reliability-Uncertainty Fusion (ARUF) instead adapts their influence using validation-derived class reliability, per-input uncertainty, and prediction agreement. The application is intended to assist an analyst or evaluator by showing a predicted category, calibrated confidence, and three leading candidates. It does not judge complaint merit, determine legal or financial outcomes, or replace accountable human review.
 
-The central argument is that useful routing accuracy is achievable on the six selected CFPB products, but a higher score is not the only decision criterion. Predictive performance must be read with latency, artifact size, calibration, evidence history, and application boundaries. Linear SVM provides the strongest generated validation and test performance and remains the registered default. ARUF achieved validation macro-F1 0.8263 and exploratory test macro-F1 0.8363: it improved on MiniLM Logistic Regression and Naive Bayes but did not exceed Linear SVM. This negative comparison is retained because implementing a new algorithm does not guarantee superior empirical performance.
+The central argument is that useful routing accuracy is achievable on the six selected CFPB products, but a higher score is not the only decision criterion. Predictive performance must be read with latency, artifact size, calibration, evidence history, and application boundaries. The weighted ensemble provides the strongest generated validation macro-F1 (0.8425) and exploratory test macro-F1 (0.8513), so it is the registered default. ARUF achieved validation macro-F1 0.8263 and exploratory test macro-F1 0.8363: it improved on MiniLM Logistic Regression and Naive Bayes but did not exceed Linear SVM or the fixed ensemble. This negative comparison is retained because implementing a new algorithm does not guarantee superior empirical performance.
 
 ## Problem Statement
 
@@ -79,11 +79,11 @@ Prior work demonstrates both classical and contextual complaint classification, 
 
 Data preparation first attempted bounded requests to the official CFPB source. If the API route failed, deterministic byte ranges from the official CSV export served as a fallback rather than a second dataset. The pipeline retained complaint ID, date received, narrative, and product; normalized HTML, Unicode, whitespace, and redaction markers; removed missing, short, exact-duplicate, and conflicting-label narratives; truncated text to 2,000 characters; then sampled 3,000 records per class with seed 42. The processed data manifest records the 70/15/15 stratified split and checksum.
 
-Model development used five-fold stratified cross-validation on training data for model-specific tuning. The three candidates were compared on the validation set, after which final base models were refitted on training plus validation data and saved with labels and metadata. ARUF uses validation-stage probability outputs generated by base models fitted on training data only. It derives per-model, per-class reliability from validation F1 and selects its non-negative parameters on validation predictions only. The selected configuration was $\alpha=1.0$, $\beta=0.5$, and $\gamma=0.2$. The saved configuration, registry entry, inference path, application selector, metrics, error samples, and confusion matrix were regenerated through the shared pipeline.
+Model development used five-fold stratified cross-validation on training data for model-specific tuning. The three candidates were compared on the validation set, after which final base models were refitted on training plus validation data and saved with labels and metadata. Both combination methods use validation-stage probability outputs generated by base models fitted on training data only. The weighted ensemble selected fixed weights of 0.05, 0.70, and 0.25 for Naive Bayes, Linear SVM, and MiniLM respectively. ARUF derives per-model, per-class reliability from validation F1 and selected $\alpha=1.0$, $\beta=0.5$, and $\gamma=0.2$. The saved configurations, registry entries, inference paths, application selector, metrics, error samples, and confusion matrices were regenerated through the shared pipeline.
 
-At inference, an English narrative must contain 20 to 2,000 valid characters. The text is normalized in memory, a registered saved model is loaded, and its six-class probability vector is used to display the predicted category, confidence, and top three candidates. Linear SVM is the default. The application code does not intentionally log or persist submitted narratives, although real deployment would still require independent security, telemetry, and privacy review.
+At inference, an English narrative must contain 20 to 2,000 valid characters. The text is normalized in memory, a registered saved model is loaded, and its six-class probability vector is used to display the predicted category, confidence, and top three candidates. The validation-weighted ensemble is the default. The application code does not intentionally log or persist submitted narratives, although real deployment would still require independent security, telemetry, and privacy review.
 
-> **Methodological note.** The original base-model test results had already been inspected before ARUF was proposed. Although ARUF fitting uses validation data rather than test labels, any four-model comparison on the existing test split is post-hoc and therefore exploratory rather than confirmatory. A later untouched or time-based holdout is required for confirmation.
+> **Methodological note.** The original base-model test results had already been inspected before the combination analysis was completed. Although both combination methods use validation data rather than test labels, the five-model comparison on the existing test split is post-hoc and therefore exploratory rather than confirmatory. A later untouched or time-based holdout is required for confirmation.
 
 ## Description and analysis of dataset
 
@@ -111,11 +111,12 @@ The dataset is not a statistical sample of all consumers. CFPB explains that pub
 | Multinomial Naive Bayes | Word TF-IDF, 1-2 grams; `MultinomialNB` | $\alpha \in \{0.1, 0.5, 1.0\}$; selected $0.1$ | Fast, small probabilistic baseline; conditional-independence assumptions can produce uneven recall. |
 | Calibrated Linear SVM | Word TF-IDF, 1-2 grams; `LinearSVC` + cross-validated calibration | $C \in \{0.5, 1.0, 2.0\}$; selected $0.5$ | Strong sparse-text margin classifier with probabilities; depends heavily on lexical evidence. |
 | MiniLM + Logistic Regression | all-MiniLM-L6-v2 sentence embedding; Logistic Regression | $C \in \{0.5, 1.0, 2.0\}$; selected $2.0$ | Compact semantic representation; slower and larger, and generic semantics may not match product boundaries. |
+| Weighted ensemble | Aligned probabilities from all three base models | Positive weights on a 0.05 grid; selected 0.05, 0.70, and 0.25 | Transparent fixed global combination; requires all member artifacts. |
 | ARUF | Aligned probabilities from all three base models | $\alpha,\beta \in \{0.5,1,2\}$ and $\gamma \in \{0,0.05,0.10,0.20\}$; selected $\alpha=1.0$, $\beta=0.5$, $\gamma=0.2$ | Adapts model influence by class reliability, current uncertainty, and agreement; requires all member artifacts. |
 
 *Table 2. Model representations, classifiers, tuned parameters, and roles.*
 
-Five-fold stratified cross-validation preserved class proportions within each fold. Hyperparameters were selected using training/CV evidence; each selected candidate was then evaluated on validation data. ARUF parameters were selected using the three validation probability matrices without consulting test labels. Final base models were refitted on training plus validation data before the test benchmark. The model with the highest validation macro-F1 is the application default; size and latency break exact ties only. Calibrated Linear SVM therefore remains the default.
+Five-fold stratified cross-validation preserved class proportions within each fold. Hyperparameters were selected using training/CV evidence; each selected candidate was then evaluated on validation data. The fixed ensemble weights and ARUF parameters were selected using the three validation probability matrices without consulting test labels. Final base models were refitted on training plus validation data before the test benchmark. The model with the highest validation macro-F1 is the application default; size and latency break exact ties only. The weighted ensemble therefore becomes the default.
 
 ### Adaptive Reliability-Uncertainty Fusion
 
@@ -250,10 +251,11 @@ which penalizes probability assigned away from the true class and serves as ARUF
 
 ## Results
 
-Table 3 presents the committed training-stage and validation evidence. Linear SVM achieved the highest cross-validation and validation macro-F1. Its CV standard deviation was similar to the other candidates, indicating no unusual fold instability. The validation scores provide the cleanest pre-test basis for choosing the application default.
+Table 3 presents the committed training-stage and validation evidence. Linear SVM achieved the highest base-model cross-validation score, while the fixed weighted ensemble achieved the highest validation macro-F1. The validation scores provide the cleanest pre-test basis for choosing the application default.
 
 | **Model** | **Selected parameter** | **CV macro-F1 mean** | **CV SD** | **Validation macro-F1** | **Validation accuracy** |
 |----|----|----|----|----|----|
+| Weighted ensemble | NB = 0.05; SVM = 0.70; MiniLM = 0.25 | Not applicable | Not applicable | 0.8425 | 0.8422 |
 | Linear SVM | C = 0.5 | 0.8366 | 0.0074 | 0.8353 | 0.8352 |
 | ARUF | alpha = 1.0; beta = 0.5; gamma = 0.2 | Not applicable | Not applicable | 0.8263 | 0.8263 |
 | MiniLM + LR | C = 2.0 | 0.8120 | 0.0080 | 0.8022 | 0.8022 |
@@ -261,45 +263,50 @@ Table 3 presents the committed training-stage and validation evidence. Linear SV
 
 *Table 3. Five-fold cross-validation and validation-set results (n = 2,700 validation records).*
 
-Table 4 reports results backed by generated repository artifacts. An earlier writing plan recorded a result for a different fixed-weight soft-voting experiment, but that design was superseded by ARUF and its unsupported number is excluded. Latency was regenerated in the current environment and is therefore compared only within this measurement run.
+Table 4 reports results backed by generated repository artifacts. The fixed weighted ensemble and ARUF are retained as distinct comparators: one uses global validation-selected weights, while the other adapts influence by class and input. Latency was regenerated in the current environment and is therefore compared only within this measurement run.
 
 | **Model / evidence status** | **Accuracy** | **Macro precision** | **Macro recall** | **Macro-F1** | **Latency (ms)** | **Size (MiB)** |
 |----|----|----|----|----|----|----|
-| Linear SVM - generated | 0.8456 | 0.8474 | 0.8456 | 0.8458 | 2.25 | 25.46 |
-| ARUF - generated, post-hoc exploratory | 0.8363 | 0.8418 | 0.8363 | 0.8363 | 24.55 | 120.67 |
-| MiniLM + LR - generated | 0.8148 | 0.8169 | 0.8148 | 0.8147 | 18.23 | 87.37 |
-| Naive Bayes - generated | 0.7581 | 0.7911 | 0.7581 | 0.7524 | 0.50 | 7.84 |
+| Weighted ensemble - generated, post-hoc exploratory | 0.8511 | 0.8532 | 0.8511 | 0.8513 | 20.71 | 120.67 |
+| Linear SVM - generated | 0.8456 | 0.8474 | 0.8456 | 0.8458 | 2.22 | 25.46 |
+| ARUF - generated, post-hoc exploratory | 0.8363 | 0.8418 | 0.8363 | 0.8363 | 24.45 | 120.67 |
+| MiniLM + LR - generated | 0.8148 | 0.8169 | 0.8148 | 0.8147 | 18.09 | 87.37 |
+| Naive Bayes - generated | 0.7581 | 0.7911 | 0.7581 | 0.7524 | 0.51 | 7.84 |
 
-*Table 4. Generated four-method test benchmark ($n=2{,}700$). ARUF is post-hoc exploratory.*
+*Table 4. Generated five-method test benchmark ($n=2{,}700$). Combination-method results are post-hoc exploratory.*
 
-All four generated test macro-F1 values meet the project target of at least 0.75. This threshold is an internal success criterion, not evidence of real-world fitness. Figures 2-5 show the four confusion matrices generated by the shared evaluation pipeline.
+All five generated test macro-F1 values meet the project target of at least 0.75. This threshold is an internal success criterion, not evidence of real-world fitness. Figures 2-6 show the five confusion matrices generated by the shared evaluation pipeline.
+
+![Weighted ensemble confusion matrix for six complaint product classes.](ComplaintCompass_Report_media/media/image7.png)
+
+*Figure 2. Weighted ensemble confusion matrix on the exploratory test set.*
 
 ![Linear SVM confusion matrix for six complaint product classes.](ComplaintCompass_Report_media/media/image3.png)
 
-*Figure 2. Linear SVM confusion matrix on the exploratory test set.*
+*Figure 3. Linear SVM confusion matrix on the exploratory test set.*
 
 ![MiniLM with Logistic Regression confusion matrix for six complaint product classes.](ComplaintCompass_Report_media/media/image4.png)
 
-*Figure 3. MiniLM + Logistic Regression confusion matrix on the exploratory test set.*
+*Figure 4. MiniLM + Logistic Regression confusion matrix on the exploratory test set.*
 
 ![Multinomial Naive Bayes confusion matrix for six complaint product classes.](ComplaintCompass_Report_media/media/image5.png)
 
-*Figure 4. Naive Bayes confusion matrix on the exploratory test set.*
+*Figure 5. Naive Bayes confusion matrix on the exploratory test set.*
 
 ![ARUF confusion matrix for six complaint product classes.](ComplaintCompass_Report_media/media/image6.png)
 
-*Figure 5. ARUF confusion matrix on the exploratory test set.*
+*Figure 6. ARUF confusion matrix on the exploratory test set.*
 
-| **Linear SVM product** | **Precision** | **Recall** | **F1** | **Support** |
+| **Weighted-ensemble product** | **Precision** | **Recall** | **F1** | **Support** |
 |----|----|----|----|----|
-| Checking or savings account | 0.7691 | 0.8511 | 0.8080 | 450 |
-| Credit card | 0.8333 | 0.8333 | 0.8333 | 450 |
-| Credit reporting or other personal consumer reports | 0.8246 | 0.8356 | 0.8300 | 450 |
-| Debt collection | 0.8257 | 0.8000 | 0.8126 | 450 |
-| Money transfer, virtual currency, or money service | 0.8811 | 0.8067 | 0.8422 | 450 |
-| Mortgage | 0.9509 | 0.9467 | 0.9488 | 450 |
+| Checking or savings account | 0.7738 | 0.8667 | 0.8176 | 450 |
+| Credit card | 0.8470 | 0.8244 | 0.8356 | 450 |
+| Credit reporting or other personal consumer reports | 0.8215 | 0.8489 | 0.8350 | 450 |
+| Debt collection | 0.8376 | 0.8022 | 0.8195 | 450 |
+| Money transfer, virtual currency, or money service | 0.8878 | 0.8089 | 0.8465 | 450 |
+| Mortgage | 0.9513 | 0.9556 | 0.9534 | 450 |
 
-*Table 5. Per-class performance of the default Linear SVM on the exploratory test set.*
+*Table 5. Per-class performance of the default weighted ensemble on the exploratory test set.*
 
 ## Discussion/Interpretation
 
@@ -307,7 +314,7 @@ The first objective was achieved: the manifests identify a balanced, determinist
 
 ARUF exploited complementary lexical and semantic signals without assigning one fixed global weight to each model. Category reliability emphasized members where validation F1 was stronger, entropy reduced the influence of uncertain predictions, and the agreement multiplier reinforced classes selected by multiple members. ARUF improved macro-F1 over MiniLM by 0.0217 and over Naive Bayes by 0.0839, but remained 0.0095 below Linear SVM. The result shows that adaptive fusion produced a competitive compromise but could not recover enough complementary correct decisions to surpass the strongest sparse model.
 
-Linear SVM is the application default because it achieved the highest validation macro-F1. It also achieved 0.8458 test macro-F1 and 0.8456 accuracy, while its stored artifact is 25.46 MiB and generated mean latency is 2.25 ms. ARUF required all three member artifacts, giving an effective size of 120.67 MiB and latency of 24.55 ms, while producing lower macro-F1. Linear SVM therefore remains preferable for both predictive and operational reasons.
+The weighted ensemble is the application default because it achieved the highest validation macro-F1 (0.8425). It also achieved the highest exploratory test macro-F1 (0.8513), with 20.71 ms latency and a 120.67 MiB effective artifact footprint. Linear SVM is the efficient alternative at 0.8458 macro-F1, 2.22 ms, and 25.46 MiB. ARUF uses the same three members but reached 0.8363 macro-F1 at 24.45 ms, so its adaptive mechanism did not outperform the simpler fixed weighting.
 
 Naive Bayes provides the smallest and fastest option at 7.84 MiB and 0.50 ms, but its 0.7524 macro-F1 is materially lower. The confusion matrix shows highly uneven behaviour: mortgage recall is 0.9489, whereas money-transfer recall is 0.4578 despite very high precision. The model is consequently useful as a baseline or constrained-device option, not the strongest general router. Its conditional-independence assumptions and reliance on token frequency provide a plausible explanation for overconfident, uneven class boundaries.
 
@@ -315,7 +322,7 @@ MiniLM's semantic representation did not outperform the tuned sparse Linear SVM.
 
 The Linear SVM confusion matrix shows mortgage as the strongest class, with F1 = 0.9488. A plausible explanation is that mortgage narratives contain distinctive terms such as escrow, foreclosure, and loan servicing. Checking/savings and credit card form a recurring confusion pair: 51 checking/savings complaints were predicted as credit card, and 54 credit-card complaints were predicted as checking/savings. Shared language about transactions, fees, fraud, accounts, and disputed charges can blur the boundary. Money-transfer and mortgage narratives also show directional confusion, potentially because narratives mention payments or servicing across products. These explanations are hypotheses; masking explicit product terms and evaluating deliberately ambiguous synthetic cases would test them.
 
-The fourth objective was met for all four registered methods through macro and per-class metrics, confusion matrices, latency, artifact size, and error samples. The fifth objective was met for the four-method Streamlit interface, which validates input and presents prediction, confidence, alternatives, and model comparison while defaulting to the highest-validation-macro-F1 model. The sixth objective is addressed through the documented limitations and privacy boundaries. These achievements demonstrate technically useful routing in the studied setting, not production readiness or causal operational benefit.
+The fourth objective was met for all five registered methods through macro and per-class metrics, confusion matrices, latency, artifact size, and error samples. The fifth objective was met for the five-method Streamlit interface, which validates input and presents prediction, confidence, alternatives, and model comparison while defaulting to the highest-validation-macro-F1 model. The sixth objective is addressed through the documented limitations and privacy boundaries. These achievements demonstrate technically useful routing in the studied setting, not production readiness or causal operational benefit.
 
 # Conclusion
 
@@ -325,11 +332,11 @@ ComplaintCompass created a balanced six-class corpus of 18,000 public CFPB narra
 
 Three complementary base approaches were implemented, trained, and evaluated under one protocol: Multinomial Naive Bayes, calibrated Linear SVM, and MiniLM embeddings with Logistic Regression. ARUF was also implemented, fitted, registered, and evaluated as an adaptive fusion of their aligned probability outputs. Its selected configuration and reliability matrix are preserved as a reproducible artifact.
 
-All four evidenced methods met the internal 0.75 macro-F1 target on the exploratory benchmark. Linear SVM achieved the strongest generated result (0.8458 macro-F1) and the best application trade-off. ARUF ranked second at 0.8363, demonstrating that the proposed adaptive mechanism is competitive but not automatically superior to a strong tuned base model.
+All five evidenced methods met the internal 0.75 macro-F1 target on the exploratory benchmark. The weighted ensemble achieved the strongest generated result (0.8513 macro-F1) and is the evidence-selected default. Linear SVM followed at 0.8458 with much lower operational cost, while ARUF reached 0.8363, demonstrating that the proposed adaptive mechanism is competitive but not automatically superior to simpler fixed weighting or a strong tuned base model.
 
 The Streamlit prototype loads saved models, validates a 20-2,000-character English input, and returns a category, confidence, and top-three candidates. Reproducibility and privacy controls include model metadata, a registry, manifests, generated metric files, test sources, local inference, and an explicit non-persistence design. Automated tests cover the fusion mathematics, deterministic selection, training and artifact reload, inference integration, and successful application classification.
 
-Overall, the project demonstrates useful automated routing performance for the selected CFPB setting. Calibrated Linear SVM is the defensible default because it has the highest validation macro-F1 and combines the strongest test result with low latency, moderate size, and calibrated probabilities. ARUF is a completed project-specific algorithm and a competitive second-place method, but its post-hoc test result still requires confirmation on a later untouched holdout.
+Overall, the project demonstrates useful automated routing performance for the selected CFPB setting. The validation-weighted ensemble is the default because it has the highest validation macro-F1 and the strongest exploratory test result. Calibrated Linear SVM remains the substantially faster and smaller alternative. ARUF is a completed project-specific algorithm, but its post-hoc result still requires confirmation on a later untouched holdout.
 
 ## Limitations and Future Works
 

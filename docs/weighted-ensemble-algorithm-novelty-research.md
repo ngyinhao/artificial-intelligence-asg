@@ -1,9 +1,9 @@
 # Does the validation-weighted ensemble count as a new algorithm?
 
 > **Implementation update (22 August 2026):** The fixed global weighted-voting design
-> evaluated in this note has been superseded on `main` by Adaptive
-> Reliability-Uncertainty Fusion (ARUF). ARUF uses class-specific validation reliability,
-> per-input entropy, and prediction agreement rather than one fixed model-weight vector.
+> evaluated in this note now coexists on `main` with Adaptive Reliability-Uncertainty
+> Fusion (ARUF). ARUF uses class-specific validation reliability, per-input entropy,
+> and prediction agreement rather than one fixed model-weight vector.
 > The earlier novelty conclusion still applies to fixed weighted soft voting. ARUF is
 > described conservatively as a project-specific algorithm assembled from established
 > ideas, not as a globally unprecedented learning method. See
@@ -15,7 +15,8 @@
 
 ## What the repository implements
 
-The implementation is on the unmerged `agent/weighted-hybrid-ensemble` branch (current tip `f74191c`), rather than on `main` (`8254643`). Its essential rule is
+The implementation was developed on `agent/weighted-hybrid-ensemble` and is now
+integrated into `main` alongside ARUF. Its essential rule is
 
 \[
 \hat p(c\mid x)=\sum_{m=1}^{3}w_m\hat p_m(c\mid x),
@@ -78,7 +79,7 @@ A stronger claim would require a material methodological difference, not merely 
 4. evaluation across multiple datasets or settings, with statistical uncertainty; and
 5. an untouched evaluation protocol.
 
-The repository itself notes an additional evidence limitation: the base-model test results had already been inspected before this ensemble was proposed, so the four-model test comparison is exploratory rather than confirmatory ([branch model card](https://github.com/ngyinhao/artificial-intelligence-asg/blob/f74191c9c47f707cb787a0d1ece8bc0467b4241d/docs/model-card.md)). This does not decide novelty, but it prevents the current test result from serving as strong evidence that the proposed configuration generalizes.
+The repository itself notes an additional evidence limitation: the base-model test results had already been inspected before the combination analysis was completed, so the five-model test comparison is exploratory rather than confirmatory ([model card](model-card.md)). This does not decide novelty, but it prevents the current test result from serving as strong evidence that the proposed configuration generalizes.
 
 ## Scope and caveat
 

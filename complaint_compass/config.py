@@ -48,13 +48,18 @@ PRODUCT_LABELS = (
 )
 
 BASE_MODEL_NAMES = ("naive_bayes", "linear_svm", "minilm_logreg")
+ENSEMBLE_MODEL_NAME = "weighted_ensemble"
 FUSION_MODEL_NAME = "adaptive_fusion"
-MODEL_NAMES = (*BASE_MODEL_NAMES, FUSION_MODEL_NAME)
+COMBINATION_MODEL_NAMES = (ENSEMBLE_MODEL_NAME, FUSION_MODEL_NAME)
+MODEL_NAMES = (*BASE_MODEL_NAMES, *COMBINATION_MODEL_NAMES)
 MODEL_DESCRIPTIONS = {
     "naive_bayes": "Multinomial Naive Bayes with word unigram/bigram TF-IDF",
     "linear_svm": "Calibrated Linear SVM with word unigram/bigram TF-IDF",
     "minilm_logreg": (
         "all-MiniLM-L6-v2 sentence embeddings with Logistic Regression"
+    ),
+    ENSEMBLE_MODEL_NAME: (
+        "Validation-weighted soft-voting ensemble of all three base models"
     ),
     "adaptive_fusion": (
         "Adaptive Reliability-Uncertainty Fusion of all three base models"

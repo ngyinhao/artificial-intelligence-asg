@@ -2,14 +2,15 @@
 
 ## Model family
 
-ComplaintCompass registers three multiclass base classifiers and one adaptive fusion
-algorithm over the same six-label dataset:
+ComplaintCompass registers three multiclass base classifiers and two probability
+combination methods over the same six-label dataset:
 
 | Registry name | Representation | Classifier | Role |
 |---|---|---|---|
 | `naive_bayes` | Word unigram/bigram TF-IDF | Multinomial Naive Bayes | Interpretable baseline |
 | `linear_svm` | Word unigram/bigram TF-IDF | Calibrated Linear SVM | Strong sparse-text method |
 | `minilm_logreg` | Normalized MiniLM sentence embeddings | Logistic Regression | Semantic transformer representation |
+| `weighted_ensemble` | Aligned probabilities from all three base models | Validation-weighted soft voting | Strongest validation method and application default |
 | `adaptive_fusion` | Aligned probabilities, validation per-class F1, and normalized entropy | Adaptive Reliability-Uncertainty Fusion | Project-specific adaptive combination |
 
 ## Intended use
@@ -33,6 +34,11 @@ are selected through five-fold stratified cross-validation on training data. Val
 macro-F1 selects the application default; size and latency break exact ties only. Final
 base models are refitted with training plus validation records before test evaluation.
 
+The weighted ensemble searches all positive model-weight combinations on a 0.05 grid
+using validation macro-F1, then log loss and deterministic tie-breakers. It selected
+weights of 0.05 for Naive Bayes, 0.70 for Linear SVM, and 0.25 for MiniLM Logistic
+Regression.
+
 ARUF is fitted from base-model probabilities generated on validation records by models
 trained only on the training split. It combines each probability with the member's
 per-class validation F1, an entropy-derived confidence factor, and a bounded agreement
@@ -54,20 +60,21 @@ examples from each class. Results from `reports/test_metrics.json` are:
 
 | Model | Macro-F1 | Accuracy | Macro precision | Macro recall | Mean latency | Artifact size |
 |---|---:|---:|---:|---:|---:|---:|
-| `linear_svm` | 0.8458 | 0.8456 | 0.8474 | 0.8456 | 2.25 ms | 25.46 MiB |
-| `adaptive_fusion` | 0.8363 | 0.8363 | 0.8418 | 0.8363 | 24.55 ms | 120.67 MiB |
-| `minilm_logreg` | 0.8147 | 0.8148 | 0.8169 | 0.8148 | 18.23 ms | 87.37 MiB |
-| `naive_bayes` | 0.7524 | 0.7581 | 0.7911 | 0.7581 | 0.50 ms | 7.84 MiB |
+| `weighted_ensemble` | 0.8513 | 0.8511 | 0.8532 | 0.8511 | 20.71 ms | 120.67 MiB |
+| `linear_svm` | 0.8458 | 0.8456 | 0.8474 | 0.8456 | 2.22 ms | 25.46 MiB |
+| `adaptive_fusion` | 0.8363 | 0.8363 | 0.8418 | 0.8363 | 24.45 ms | 120.67 MiB |
+| `minilm_logreg` | 0.8147 | 0.8148 | 0.8169 | 0.8148 | 18.09 ms | 87.37 MiB |
+| `naive_bayes` | 0.7524 | 0.7581 | 0.7911 | 0.7581 | 0.51 ms | 7.84 MiB |
 
-The calibrated Linear SVM is the registered default because it achieved the highest
-validation macro-F1 and also produced the strongest test result. Its best
-cross-validated setting was `C=0.5`. MiniLM Logistic Regression selected `C=2.0`, and
-Naive Bayes selected `alpha=0.1`. ARUF improved upon two of its three members but did
-not surpass Linear SVM, showing that adaptive combination does not guarantee an accuracy
-gain when the strongest member already dominates the task.
+The weighted ensemble is the registered default because it achieved the highest
+validation macro-F1; it also produced the strongest exploratory test result. Linear
+SVM's best cross-validated setting was `C=0.5`, MiniLM Logistic Regression selected
+`C=2.0`, and Naive Bayes selected `alpha=0.1`. ARUF improved upon two members but did
+not surpass Linear SVM or the fixed ensemble, showing that per-input adaptation does
+not guarantee an accuracy gain.
 
 The clearest recurring confusion for the default model is between checking/savings and
-credit-card complaints, while mortgage is its strongest class (F1 0.9488). These results
+credit-card complaints, while mortgage is its strongest class (F1 0.9534). These results
 meet the project target but do not establish fitness for automated production routing.
 
 ## Input and output
@@ -85,6 +92,11 @@ meet the project target but do not establish fitness for automated production ro
 - ARUF inherits the errors and representation limitations of all three member models.
 - ARUF uncertainty weighting uses model probability dispersion, not verified epistemic
   uncertainty or real-world correctness.
+- A qualitative probe about an unknown account appearing on a consumer report exposes
+  correlated sparse-model error: MiniLM selects credit reporting, while Naive Bayes and
+  Linear SVM select debt collection. Both combination methods follow the sparse-model
+  majority. ARUF's agreement term can reinforce such a shared error, so aggregate model
+  rank must not be interpreted as correctness on every narrative.
 - Calibration and aggregate metrics can hide class-specific or distribution-shift errors.
 - CFPB narratives are opt-in, scrubbed, unverified, and US-specific.
 - Performance can degrade when wording or product categories differ from training data.

@@ -60,7 +60,7 @@
     "macro_f1": 0.8263217330123033,
     "macro_precision": 0.831547627795652,
     "macro_recall": 0.8262962962962964,
-    "mean_inference_latency_ms": 20.13068399974145,
+    "mean_inference_latency_ms": 19.47234599967487,
     "member_models": [
       "naive_bayes",
       "linear_svm",
@@ -181,7 +181,7 @@
     "macro_f1": 0.8353457867752859,
     "macro_precision": 0.8364587051284414,
     "macro_recall": 0.8351851851851854,
-    "mean_inference_latency_ms": 1.0452289995737374,
+    "mean_inference_latency_ms": 0.9901250002440065,
     "per_class": {
       "Checking or savings account": {
         "f1-score": 0.7956521739130434,
@@ -296,7 +296,7 @@
     "macro_f1": 0.8021881695295056,
     "macro_precision": 0.8033884183454328,
     "macro_recall": 0.8022222222222221,
-    "mean_inference_latency_ms": 18.832179000019096,
+    "mean_inference_latency_ms": 18.19250699947588,
     "per_class": {
       "Checking or savings account": {
         "f1-score": 0.7417943107221007,
@@ -411,7 +411,7 @@
     "macro_f1": 0.7395079119033569,
     "macro_precision": 0.7769652941858203,
     "macro_recall": 0.7444444444444445,
-    "mean_inference_latency_ms": 0.2016770001500845,
+    "mean_inference_latency_ms": 0.2294419996906072,
     "per_class": {
       "Checking or savings account": {
         "f1-score": 0.6881143878462913,
@@ -464,5 +464,121 @@
       }
     },
     "weighted_f1": 0.7395079119033569
+  },
+  "weighted_ensemble": {
+    "accuracy": 0.8422222222222222,
+    "artifact_size_bytes": 126527438,
+    "confusion_matrix": [
+      [
+        386,
+        41,
+        18,
+        4,
+        1,
+        0
+      ],
+      [
+        69,
+        351,
+        10,
+        10,
+        8,
+        2
+      ],
+      [
+        22,
+        21,
+        366,
+        3,
+        29,
+        9
+      ],
+      [
+        4,
+        6,
+        6,
+        427,
+        7,
+        0
+      ],
+      [
+        6,
+        2,
+        35,
+        3,
+        375,
+        29
+      ],
+      [
+        0,
+        6,
+        9,
+        4,
+        62,
+        369
+      ]
+    ],
+    "macro_f1": 0.842474905197507,
+    "macro_precision": 0.8443233148114562,
+    "macro_recall": 0.8422222222222223,
+    "mean_inference_latency_ms": 19.412073999410495,
+    "per_class": {
+      "Checking or savings account": {
+        "f1-score": 0.8047210300429185,
+        "precision": 0.7780082987551867,
+        "recall": 0.8333333333333334,
+        "support": 450.0
+      },
+      "Credit card": {
+        "f1-score": 0.8187919463087249,
+        "precision": 0.8243243243243243,
+        "recall": 0.8133333333333334,
+        "support": 450.0
+      },
+      "Credit reporting or other personal consumer reports": {
+        "f1-score": 0.823906083244397,
+        "precision": 0.7926078028747433,
+        "recall": 0.8577777777777778,
+        "support": 450.0
+      },
+      "Debt collection": {
+        "f1-score": 0.8004561003420753,
+        "precision": 0.8220140515222483,
+        "recall": 0.78,
+        "support": 450.0
+      },
+      "Money transfer, virtual currency, or money service": {
+        "f1-score": 0.8591385331781141,
+        "precision": 0.902200488997555,
+        "recall": 0.82,
+        "support": 450.0
+      },
+      "Mortgage": {
+        "f1-score": 0.9478357380688124,
+        "precision": 0.9467849223946785,
+        "recall": 0.9488888888888889,
+        "support": 450.0
+      },
+      "accuracy": 0.8422222222222222,
+      "macro avg": {
+        "f1-score": 0.8424749051975069,
+        "precision": 0.8443233148114561,
+        "recall": 0.8422222222222223,
+        "support": 2700.0
+      },
+      "weighted avg": {
+        "f1-score": 0.842474905197507,
+        "precision": 0.844323314811456,
+        "recall": 0.8422222222222222,
+        "support": 2700.0
+      }
+    },
+    "validation_log_loss": 0.4945893142791154,
+    "weighted_f1": 0.842474905197507,
+    "weights": {
+      "linear_svm": 0.7,
+      "minilm_logreg": 0.25,
+      "naive_bayes": 0.05
+    }
   }
 }

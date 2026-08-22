@@ -12,6 +12,7 @@ import streamlit as st
 
 from complaint_compass.config import (
     ARTIFACTS_DIR,
+    ENSEMBLE_MODEL_NAME,
     MODEL_DESCRIPTIONS,
     PRODUCT_LABELS,
     REPORTS_DIR,
@@ -74,7 +75,26 @@ def _classify_tab(predictor: ComplaintPredictor) -> None:
         index=list(predictor.available_models).index(predictor.default_model),
         format_func=lambda name: f"{name} — {MODEL_DESCRIPTIONS.get(name, name)}",
     )
-    if model_name == "adaptive_fusion":
+    if model_name == ENSEMBLE_MODEL_NAME:
+        metadata = predictor.registry.get("models", {}).get(model_name, {})
+        weights = metadata.get("weights", {})
+        st.info(
+            "This model uses validation-selected fixed soft-voting weights and "
+            "currently has the highest validation macro-F1."
+        )
+        with st.expander("How the weighted ensemble combines models"):
+            rows = [
+                {
+                    "Model": name,
+                    "Role": MODEL_DESCRIPTIONS.get(name, name),
+                    "Weight": f"{float(weights[name]):.0%}",
+                }
+                for name in metadata.get("base_models", [])
+                if name in weights
+            ]
+            if rows:
+                st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+    elif model_name == "adaptive_fusion":
         st.caption(
             "ARUF adapts each member's influence using category-level validation "
             "reliability, prediction uncertainty, and agreement."
@@ -160,9 +180,10 @@ def _about_tab() -> None:
         - The data concerns the United States and may not generalize to other regions.
         - Inputs are limited to English and 2,000 characters.
         - Predictions must not be used to judge consumers, companies, or complaint merit.
+        - The combination-method test results are exploratory because the original
+          holdout had already been inspected before the broader analysis was completed.
         - Adaptive fusion is a project-specific combination of established ensemble and
-          uncertainty concepts; its current test result is exploratory because the
-          original holdout had already been inspected before the method was proposed.
+          uncertainty concepts, not a claim of global algorithmic novelty.
 
         [Official CFPB database](https://www.consumerfinance.gov/data-research/consumer-complaints/)
         """

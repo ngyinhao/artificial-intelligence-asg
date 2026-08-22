@@ -21,3 +21,4 @@
 | Sealed test set | Records not used for preprocessing decisions, tuning, calibration, or default-model selection. |
 | TF-IDF | Sparse text representation that weights terms by frequency within a narrative and rarity across narratives. |
 | Top-three categories | Three labels with the highest predicted probability for one narrative. |
+| Weighted soft-voting ensemble | Combination that aligns class probabilities and applies one validation-selected positive weight to each base model; it is the current default. |

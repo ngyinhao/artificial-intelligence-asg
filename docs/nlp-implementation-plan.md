@@ -53,23 +53,27 @@ Train and compare:
 1. Multinomial Naive Bayes with word unigram/bigram TF-IDF.
 2. Calibrated Linear SVM with word unigram/bigram TF-IDF.
 3. `sentence-transformers/all-MiniLM-L6-v2` embeddings with Logistic Regression.
-4. Adaptive Reliability-Uncertainty Fusion (ARUF), combining the aligned probability
+4. Validation-weighted soft voting, combining aligned base-model probabilities using
+   positive global weights selected on a 0.05 grid.
+5. Adaptive Reliability-Uncertainty Fusion (ARUF), combining the aligned probability
    outputs of all three base models using per-class validation F1, per-input normalized
    entropy, and a model-agreement multiplier.
 
 Use five-fold stratified cross-validation on the training split. Tune Naive Bayes
 `alpha` over 0.1, 0.5, and 1.0, and tune the SVM and Logistic Regression `C` over 0.5,
 1.0, and 2.0. Generate validation probabilities from base models fitted on training data
-only. Fit ARUF on those probabilities by searching `alpha` and `beta` over 0.5, 1.0,
+only. Fit the weighted ensemble and ARUF on those probabilities. Search ARUF `alpha`
+and `beta` over 0.5, 1.0,
 and 2.0 and `gamma` over 0, 0.05, 0.10, and 0.20. Select configurations by validation
 macro-F1, then class-order-safe log loss and deterministic neutral-parameter criteria.
 Select the application default strictly by the highest validation macro-F1, using size
 and latency only for an exact tie. Refit each finalized base model with training plus
 validation data, then evaluate all registered methods once on the test set.
 
-Because the original test results were inspected before ARUF was proposed, its current
-test result is exploratory. Confirm it on a later untouched or time-based holdout before
-making a generalization claim.
+Because the original test results were inspected before the combination methods were
+fully analysed, their current test results are exploratory. Confirm them on a later
+untouched or time-based holdout before making a generalization claim. The weighted
+ensemble currently has the highest validation macro-F1 and is the application default.
 
 Macro-F1 is the primary metric. Also report accuracy, macro precision, macro recall,
 weighted F1, per-class scores, confusion matrices, artifact size, cross-validation

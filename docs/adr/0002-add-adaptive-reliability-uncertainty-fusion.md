@@ -14,7 +14,8 @@ on an individual complaint.
 
 ## Decision
 
-Add Adaptive Reliability-Uncertainty Fusion (ARUF) as a fourth registered method. For
+Add Adaptive Reliability-Uncertainty Fusion (ARUF) as an additional registered method
+alongside the fixed weighted ensemble. For
 each complaint and category, ARUF multiplies each member probability by that member's
 validation F1 for the category and by an entropy-derived confidence factor. It then
 applies a bounded agreement multiplier when multiple members vote for the same category,
@@ -34,12 +35,14 @@ break exact ties only.
 The selected configuration is `alpha = 1.0`, `beta = 0.5`, and `gamma = 0.2`.
 ARUF achieved validation macro-F1 0.8263 and exploratory test macro-F1 0.8363. It
 outperformed MiniLM Logistic Regression and Naive Bayes but did not outperform Linear
-SVM, which achieved test macro-F1 0.8458 and remains the default.
+SVM (0.8458 test macro-F1) or the fixed weighted ensemble (0.8513). The weighted
+ensemble achieved the highest validation macro-F1 (0.8425) and is therefore the
+Streamlit default.
 
 ## Consequences
 
-- The project contains a concrete, testable adaptive fusion algorithm rather than an
-  unimplemented or fixed-weight ensemble proposal.
+- The project contains a concrete, testable adaptive fusion algorithm and retains the
+  fixed weighted ensemble as a transparent empirical comparator.
 - Inference requires all three base models, increasing effective artifact size and
   latency.
 - Category reliability and input uncertainty are explicit and inspectable in the saved

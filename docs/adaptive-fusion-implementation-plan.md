@@ -2,7 +2,7 @@
 
 ## Objective
 
-Add a fourth ComplaintCompass method, **Adaptive Reliability-Uncertainty Fusion
+Add **Adaptive Reliability-Uncertainty Fusion
 (ARUF)**, that combines the existing Naive Bayes, calibrated Linear SVM, and
 MiniLM Logistic Regression probability outputs using category reliability,
 per-input uncertainty, and prediction agreement. The implementation must be
@@ -39,7 +39,8 @@ from the neutral configuration as tie-breakers.
    these validation predictions.
 4. Save only the derived ARUF configuration; keep the existing final member
    models trained on training plus validation data.
-5. Evaluate all four registered methods once through the shared test pipeline.
+5. Evaluate all five registered methods once through the shared test pipeline,
+   including the concurrently implemented fixed weighted ensemble.
 6. Record that the existing test set has previously been inspected. The ARUF
    result is exploratory until confirmed on a later untouched or time-based
    holdout.
@@ -60,7 +61,8 @@ from the neutral configuration as tie-breakers.
 - Tune the ARUF parameters and calculate validation metrics.
 - Save member names, class order, reliability matrix, chosen parameters,
   evidence split, and effective deployment size in the ARUF artifact metadata.
-- Register `adaptive_fusion` alongside the three existing methods.
+- Register `adaptive_fusion` alongside the three base methods and fixed weighted
+  ensemble.
 
 ### 3. Inference, evaluation, and interface
 
@@ -107,3 +109,5 @@ from the neutral configuration as tie-breakers.
 - Generated metrics and documentation agree with the committed implementation.
 - The report contains no unsupported claim of global algorithmic novelty.
 - The hosted Streamlit application exposes and successfully runs ARUF.
+- The highest-validation-macro-F1 method remains the Streamlit default; after the
+  combined regeneration this is `weighted_ensemble`.

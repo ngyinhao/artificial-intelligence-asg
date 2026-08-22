@@ -3,8 +3,10 @@
 ComplaintCompass is a single-contributor NLP research prototype that routes English
 consumer financial complaint narratives into six CFPB product categories. It compares
 Naive Bayes, a calibrated linear SVM, MiniLM sentence embeddings with Logistic
-Regression, and the project-specific Adaptive Reliability-Uncertainty Fusion (ARUF)
-algorithm under one reproducible evaluation protocol.
+Regression, a validation-weighted soft-voting ensemble, and the project-specific
+Adaptive Reliability-Uncertainty Fusion (ARUF) algorithm under one reproducible
+evaluation protocol. The weighted ensemble has the highest validation macro-F1 and is
+therefore the Streamlit default; every method remains selectable.
 
 Try the live app: [ComplaintCompass on Streamlit](https://share.streamlit.io/ngyinhao/artificial-intelligence-asg/main/app.py).
 
@@ -51,6 +53,8 @@ larger candidate target, or a larger `--max-range-chunks` run skips completed ra
 - `data/raw/download_manifest.json`: data query and source checksum.
 - `data/processed/dataset_manifest.json`: label/split counts and dataset checksum.
 - `artifacts/registry.json`: available artifacts and default model.
+- `artifacts/models/weighted_ensemble/metadata.json`: validation-selected fixed
+  soft-voting weights.
 - `artifacts/models/adaptive_fusion/configuration.json`: validation-derived ARUF
   reliability matrix and selected uncertainty/agreement parameters.
 - `reports/validation_metrics.json`: model-selection results.
