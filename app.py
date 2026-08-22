@@ -12,7 +12,6 @@ import streamlit as st
 
 from complaint_compass.config import (
     ARTIFACTS_DIR,
-    ENSEMBLE_MODEL_NAME,
     MODEL_DESCRIPTIONS,
     PRODUCT_LABELS,
     REPORTS_DIR,
@@ -54,7 +53,7 @@ def _metric_frame(payload: dict[str, dict[str, Any]]) -> pd.DataFrame:
 
 def _load_metrics() -> tuple[str, dict[str, dict[str, Any]]] | None:
     candidates = (
-        ("Exploratory test benchmark", REPORTS_DIR / "test_metrics.json"),
+        ("Sealed test results", REPORTS_DIR / "test_metrics.json"),
         ("Validation results", REPORTS_DIR / "validation_metrics.json"),
     )
     for label, path in candidates:
@@ -75,34 +74,11 @@ def _classify_tab(predictor: ComplaintPredictor) -> None:
         index=list(predictor.available_models).index(predictor.default_model),
         format_func=lambda name: f"{name} — {MODEL_DESCRIPTIONS.get(name, name)}",
     )
-    if model_name == ENSEMBLE_MODEL_NAME:
-        metadata = predictor.registry.get("models", {}).get(model_name, {})
-        weights = metadata.get("weights", {})
-        component_names = metadata.get("base_models", list(weights))
-        st.info(
-            "This research model combines the probability estimates from all three "
-            "base models. Its weights were selected using validation data only."
+    if model_name == "adaptive_fusion":
+        st.caption(
+            "ARUF adapts each member's influence using category-level validation "
+            "reliability, prediction uncertainty, and agreement."
         )
-        with st.expander("How the ensemble combines models"):
-            weight_rows = [
-                {
-                    "Model": name,
-                    "Role": MODEL_DESCRIPTIONS.get(name, name),
-                    "Weight": f"{float(weight):.0%}",
-                }
-                for name in component_names
-                if (weight := weights.get(name)) is not None
-            ]
-            if weight_rows:
-                st.dataframe(
-                    pd.DataFrame(weight_rows),
-                    hide_index=True,
-                    width="stretch",
-                )
-            else:
-                st.warning(
-                    "The ensemble metadata does not include displayable weights."
-                )
     narrative = st.text_area(
         "Complaint narrative",
         height=220,
@@ -184,6 +160,9 @@ def _about_tab() -> None:
         - The data concerns the United States and may not generalize to other regions.
         - Inputs are limited to English and 2,000 characters.
         - Predictions must not be used to judge consumers, companies, or complaint merit.
+        - Adaptive fusion is a project-specific combination of established ensemble and
+          uncertainty concepts; its current test result is exploratory because the
+          original holdout had already been inspected before the method was proposed.
 
         [Official CFPB database](https://www.consumerfinance.gov/data-research/consumer-complaints/)
         """

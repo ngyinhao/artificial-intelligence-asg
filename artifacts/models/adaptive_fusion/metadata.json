@@ -1,0 +1,29 @@
+{
+  "artifact_size_bytes": 126528600,
+  "best_params": {
+    "alpha": 1.0,
+    "beta": 0.5,
+    "gamma": 0.2
+  },
+  "configuration_file": "configuration.json",
+  "dataset_sha256": "8727affded9c28e0e3886264c34a53a8a7705d81216bd5d744f943a6cf3d7719",
+  "description": "Adaptive Reliability-Uncertainty Fusion of all three base models",
+  "evidence_split": "validation",
+  "evidence_status": "exploratory; confirm on a fresh untouched holdout",
+  "kind": "adaptive_fusion",
+  "labels": [
+    "Credit reporting or other personal consumer reports",
+    "Debt collection",
+    "Credit card",
+    "Mortgage",
+    "Checking or savings account",
+    "Money transfer, virtual currency, or money service"
+  ],
+  "member_models": [
+    "naive_bayes",
+    "linear_svm",
+    "minilm_logreg"
+  ],
+  "model_name": "adaptive_fusion",
+  "model_version": "1.1.0"
+}

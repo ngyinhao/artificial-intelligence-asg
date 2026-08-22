@@ -33,8 +33,8 @@ artifacts/models/*
 artifacts/models/minilm_logreg/encoder/README.md
 !artifacts/models/naive_bayes/
 !artifacts/models/naive_bayes/**
-!artifacts/models/weighted_ensemble/
-!artifacts/models/weighted_ensemble/**
+!artifacts/models/adaptive_fusion/
+!artifacts/models/adaptive_fusion/**
 
 # Streamlit local configuration
 .streamlit/secrets.toml

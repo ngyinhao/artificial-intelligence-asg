@@ -6,8 +6,8 @@
 
 ComplaintCompass is a single-contributor academic prototype that classifies an English
 consumer complaint narrative into one of six financial-product categories. It compares
-three NLP representations and exposes the trained artifacts through a local Streamlit
-application.
+three base NLP representations plus an adaptive fusion algorithm and exposes the
+trained artifacts through a Streamlit application.
 
 The intended audience is a support-triage analyst or evaluator who needs a suggested
 category and a transparent comparison of the available models. The output is routing
@@ -48,25 +48,28 @@ counts, labels, seed, and SHA-256 checksums.
 
 ## Models
 
-Train and compare three base models:
+Train and compare:
 
 1. Multinomial Naive Bayes with word unigram/bigram TF-IDF.
 2. Calibrated Linear SVM with word unigram/bigram TF-IDF.
 3. `sentence-transformers/all-MiniLM-L6-v2` embeddings with Logistic Regression.
-
-Construct a fourth optional `weighted_ensemble` model by aligning the six-class
-validation probabilities from all three base models and selecting positive soft-voting
-weights in increments of 0.05. Rank candidates by macro-F1, multiclass log loss,
-distance from equal weighting, and deterministic lexical order. The ensemble stores
-only metadata and reuses the three base artifacts at inference time.
+4. Adaptive Reliability-Uncertainty Fusion (ARUF), combining the aligned probability
+   outputs of all three base models using per-class validation F1, per-input normalized
+   entropy, and a model-agreement multiplier.
 
 Use five-fold stratified cross-validation on the training split. Tune Naive Bayes
 `alpha` over 0.1, 0.5, and 1.0, and tune the SVM and Logistic Regression `C` over 0.5,
-1.0, and 2.0. Evaluate on validation data and retain the calibrated Linear SVM as the
-application default while exposing the ensemble as an exploratory option. Refit each
-finalized base model with training plus validation data. Because the original test
-results were examined before this post-hoc ensemble was defined, report the four-model
-test comparison as an exploratory benchmark rather than a newly sealed evaluation.
+1.0, and 2.0. Generate validation probabilities from base models fitted on training data
+only. Fit ARUF on those probabilities by searching `alpha` and `beta` over 0.5, 1.0,
+and 2.0 and `gamma` over 0, 0.05, 0.10, and 0.20. Select configurations by validation
+macro-F1, then class-order-safe log loss and deterministic neutral-parameter criteria.
+Select the application default strictly by the highest validation macro-F1, using size
+and latency only for an exact tie. Refit each finalized base model with training plus
+validation data, then evaluate all registered methods once on the test set.
+
+Because the original test results were inspected before ARUF was proposed, its current
+test result is exploratory. Confirm it on a later untouched or time-based holdout before
+making a generalization claim.
 
 Macro-F1 is the primary metric. Also report accuracy, macro precision, macro recall,
 weighted F1, per-class scores, confusion matrices, artifact size, cross-validation
@@ -77,7 +80,7 @@ variation, and inference latency.
 The Streamlit application provides:
 
 - A complaint-classification view accepting 20 to 2,000 English characters.
-- A four-model selector defaulting to the calibrated Linear SVM.
+- A model selector defaulting to the validation-selected model.
 - Predicted category, calibrated confidence, and top-three candidates.
 - A model-comparison view backed by generated aggregate reports.
 - A data and limitations view with the intended-use disclaimer.
@@ -129,7 +132,9 @@ honestly with error analysis rather than changing the sealed test data.
 
 - One contributor owns data, modeling, application, testing, and reporting.
 - Version 1 is English-only and local-only.
-- No crawler, user accounts, cloud hosting, or external runtime API is included.
+- No crawler, user accounts, or external runtime inference API is included. The
+  artifact-only Streamlit interface may be hosted without transmitting complaint text
+  to a model provider.
 - Network access is required only to install packages, download CFPB data, and obtain
   the MiniLM weights. Saved artifacts support offline prediction afterward.
 - The official assignment document template is incorporated separately when supplied.

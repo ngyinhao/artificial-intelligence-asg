@@ -7,3 +7,7 @@
 - **Troubleshooting result:** Retrying inside the same restricted process is ineffective because the underlying HTTP client remains unable to open the socket.
 - **Workaround:** Rerun the training command with explicitly approved network access so Hugging Face can populate its local cache. Subsequent application inference is local and does not require network access.
 - **Prevention:** During a clean setup, download or pre-cache the pinned MiniLM model while network access is available before testing offline training or inference.
+
+## Recurrence: adaptive-fusion evidence regeneration (2026-08-22)
+
+The same Windows error 10013 recurred while retraining all models for adaptive-fusion validation evidence. This time a complete saved encoder already existed at `artifacts/models/minilm_logreg/encoder`, but training still constructed `SentenceTransformer` from the remote model identifier and attempted a Hugging Face metadata request. The implementation was updated to prefer that local encoder directory when present and use the remote identifier only for a clean setup. This makes repeat training offline-capable while preserving the pinned encoder and its original source metadata.

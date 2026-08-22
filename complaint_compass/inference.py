@@ -9,12 +9,8 @@ from typing import Any
 import joblib
 import numpy as np
 
-from .config import (
-    ARTIFACTS_DIR,
-    BASE_MODEL_NAMES,
-    ENSEMBLE_MODEL_NAME,
-    TOP_K,
-)
+from .config import ARTIFACTS_DIR, TOP_K
+from .fusion import FusionError, fuse_probabilities
 from .text import validate_text
 
 
@@ -38,13 +34,9 @@ class ComplaintPredictor:
         self.available_models = tuple(self.registry.get("available_models", []))
         if not self.default_model or self.default_model not in self.available_models:
             raise ArtifactError("The model registry does not contain a valid default model.")
-        self._loaded: dict[
-            str, tuple[dict[str, Any], Any | None, Any | None]
-        ] = {}
+        self._loaded: dict[str, tuple[dict[str, Any], Any, Any | None]] = {}
 
-    def _load(
-        self, model_name: str
-    ) -> tuple[dict[str, Any], Any | None, Any | None]:
+    def _load(self, model_name: str) -> tuple[dict[str, Any], Any, Any | None]:
         if model_name not in self.available_models:
             raise ArtifactError(
                 f"Unknown model '{model_name}'. Available: {self.available_models}"
@@ -79,127 +71,26 @@ class ComplaintPredictor:
                 )
             model = joblib.load(classifier_path)
             encoder = SentenceTransformer(str(encoder_path))
-        elif kind == "ensemble":
-            self._validate_ensemble_metadata(model_name, metadata)
-            model = None
+        elif kind == "adaptive_fusion":
+            configuration_path = model_dir / metadata["configuration_file"]
+            if not configuration_path.exists():
+                raise ArtifactError(
+                    f"Missing fusion configuration: {configuration_path}"
+                )
+            model = json.loads(configuration_path.read_text(encoding="utf-8"))
+            members = tuple(model.get("member_names", []))
+            if not members or model_name in members:
+                raise ArtifactError("Adaptive fusion contains invalid member models.")
+            if not set(members).issubset(self.available_models):
+                raise ArtifactError(
+                    "Adaptive fusion references models absent from the registry."
+                )
         else:
             raise ArtifactError(f"Unsupported artifact kind '{kind}' for {model_name}.")
 
         loaded = (metadata, model, encoder)
         self._loaded[model_name] = loaded
         return loaded
-
-    def _validate_ensemble_metadata(
-        self, model_name: str, metadata: dict[str, Any]
-    ) -> None:
-        base_models = metadata.get("base_models")
-        weights = metadata.get("weights")
-        labels = metadata.get("labels")
-        if model_name != ENSEMBLE_MODEL_NAME:
-            raise ArtifactError("Ensemble metadata uses an unsupported model name.")
-        if not isinstance(base_models, list) or tuple(base_models) != BASE_MODEL_NAMES:
-            raise ArtifactError(
-                f"{model_name} must reference the registered base models in order."
-            )
-        if not isinstance(weights, dict) or set(weights) != set(BASE_MODEL_NAMES):
-            raise ArtifactError(f"{model_name} has missing or unexpected weights.")
-        values = np.asarray([weights[name] for name in BASE_MODEL_NAMES], dtype=float)
-        if not np.isfinite(values).all() or np.any(values <= 0):
-            raise ArtifactError(f"{model_name} weights must be finite and positive.")
-        if not np.isclose(values.sum(), 1.0, atol=1e-8):
-            raise ArtifactError(f"{model_name} weights must sum to one.")
-        if not isinstance(labels, list) or len(labels) != len(set(labels)):
-            raise ArtifactError(f"{model_name} labels are missing or duplicated.")
-        missing = set(base_models).difference(self.available_models)
-        if missing:
-            raise ArtifactError(
-                f"{model_name} is missing registered base models: {sorted(missing)}"
-            )
-
-    @staticmethod
-    def _align_probabilities(
-        probabilities: np.ndarray,
-        classes: np.ndarray,
-        target_classes: np.ndarray,
-    ) -> np.ndarray:
-        class_names = [str(value) for value in classes]
-        target_names = [str(value) for value in target_classes]
-        if len(set(class_names)) != len(class_names) or set(class_names) != set(
-            target_names
-        ):
-            raise ArtifactError("Base-model classes do not match ensemble labels.")
-        return probabilities[
-            :, [class_names.index(label) for label in target_names]
-        ]
-
-    @staticmethod
-    def _validate_probabilities(
-        probabilities: np.ndarray, classes: np.ndarray, row_count: int
-    ) -> None:
-        if probabilities.shape != (row_count, len(classes)):
-            raise ArtifactError("Model probabilities do not match the registered classes.")
-        if not np.isfinite(probabilities).all():
-            raise ArtifactError("Model returned non-finite probabilities.")
-        if np.any(probabilities < -1e-12):
-            raise ArtifactError("Model returned negative probabilities.")
-        row_sums = probabilities.sum(axis=1)
-        if not np.allclose(row_sums, 1.0, atol=1e-5):
-            raise ArtifactError("Model probabilities do not sum to one.")
-
-    def _predict_normalized(
-        self,
-        normalized: list[str],
-        model_name: str,
-        *,
-        ancestry: tuple[str, ...] = (),
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        if model_name in ancestry:
-            raise ArtifactError("Recursive ensemble model references are not supported.")
-        metadata, model, encoder = self._load(model_name)
-        kind = metadata["kind"]
-        if kind == "minilm":
-            features = encoder.encode(
-                normalized,
-                batch_size=64,
-                show_progress_bar=False,
-                normalize_embeddings=True,
-            )
-            probabilities = np.asarray(model.predict_proba(features), dtype=float)
-            classes = np.asarray(model.classes_, dtype=str)
-        elif kind == "sklearn":
-            probabilities = np.asarray(model.predict_proba(normalized), dtype=float)
-            classes = np.asarray(model.classes_, dtype=str)
-        else:
-            target_classes = np.asarray(metadata["labels"], dtype=str)
-            combined = np.zeros((len(normalized), len(target_classes)), dtype=float)
-            expected_checksum = metadata.get("dataset_sha256")
-            for base_name in metadata["base_models"]:
-                base_metadata, _, _ = self._load(base_name)
-                if base_metadata.get("kind") == "ensemble":
-                    raise ArtifactError("Recursive ensemble components are not supported.")
-                if base_metadata.get("dataset_sha256") != expected_checksum:
-                    raise ArtifactError(
-                        f"Dataset checksum mismatch for ensemble component {base_name}."
-                    )
-                _, base_probabilities, base_classes = self._predict_normalized(
-                    normalized,
-                    base_name,
-                    ancestry=(*ancestry, model_name),
-                )
-                combined += float(metadata["weights"][base_name]) * (
-                    self._align_probabilities(
-                        base_probabilities, base_classes, target_classes
-                    )
-                )
-            row_sums = combined.sum(axis=1, keepdims=True)
-            if not np.isfinite(row_sums).all() or np.any(row_sums <= 0):
-                raise ArtifactError("Ensemble produced invalid probability totals.")
-            probabilities = combined / row_sums
-            classes = target_classes
-
-        self._validate_probabilities(probabilities, classes, len(normalized))
-        labels = classes[np.argmax(probabilities, axis=1)]
-        return labels, probabilities, classes
 
     def predict_batch(
         self, texts: list[str], *, model_name: str | None = None
@@ -210,29 +101,56 @@ class ComplaintPredictor:
             raise ValueError("At least one complaint is required.")
         normalized = [validate_text(text) for text in texts]
         selected = model_name or self.default_model
-        return self._predict_normalized(normalized, selected)
+        metadata, model, encoder = self._load(selected)
+        if metadata["kind"] == "minilm":
+            features = encoder.encode(
+                normalized,
+                batch_size=64,
+                show_progress_bar=False,
+                normalize_embeddings=True,
+            )
+            probabilities = np.asarray(model.predict_proba(features), dtype=float)
+            labels = np.asarray(model.predict(features), dtype=str)
+            classes = np.asarray(model.classes_, dtype=str)
+        elif metadata["kind"] == "adaptive_fusion":
+            classes = np.asarray(model["labels"], dtype=str)
+            member_probabilities = []
+            for member_name in model["member_names"]:
+                _, probabilities_for_member, member_classes = self.predict_batch(
+                    normalized, model_name=member_name
+                )
+                member_order = member_classes.tolist()
+                try:
+                    indices = [member_order.index(label) for label in classes]
+                except ValueError as exc:
+                    raise ArtifactError(
+                        f"Fusion member '{member_name}' has incompatible classes."
+                    ) from exc
+                member_probabilities.append(probabilities_for_member[:, indices])
+            try:
+                probabilities = fuse_probabilities(
+                    np.stack(member_probabilities, axis=0),
+                    np.asarray(model["class_reliability"], dtype=float),
+                    alpha=float(model["alpha"]),
+                    beta=float(model["beta"]),
+                    gamma=float(model["gamma"]),
+                )
+            except (FusionError, KeyError, TypeError, ValueError) as exc:
+                raise ArtifactError("Adaptive fusion configuration is invalid.") from exc
+            labels = classes[np.argmax(probabilities, axis=1)]
+        else:
+            probabilities = np.asarray(model.predict_proba(normalized), dtype=float)
+            labels = np.asarray(model.predict(normalized), dtype=str)
+            classes = np.asarray(model.classes_, dtype=str)
 
-    def artifact_size_bytes(self, model_name: str) -> int:
-        """Return the unique on-disk footprint required by a registered model."""
-
-        visited_models: set[str] = set()
-        files: set[Path] = set()
-
-        def visit(name: str, ancestry: tuple[str, ...] = ()) -> None:
-            if name in ancestry:
-                raise ArtifactError("Recursive ensemble model references are not supported.")
-            if name in visited_models:
-                return
-            visited_models.add(name)
-            metadata, _, _ = self._load(name)
-            model_dir = self.artifacts_dir / "models" / name
-            files.update(item.resolve() for item in model_dir.rglob("*") if item.is_file())
-            if metadata["kind"] == "ensemble":
-                for base_name in metadata["base_models"]:
-                    visit(base_name, (*ancestry, name))
-
-        visit(model_name)
-        return sum(path.stat().st_size for path in files)
+        if probabilities.shape != (len(normalized), len(classes)):
+            raise ArtifactError("Model probabilities do not match the registered classes.")
+        if not np.isfinite(probabilities).all():
+            raise ArtifactError("Model returned non-finite probabilities.")
+        row_sums = probabilities.sum(axis=1)
+        if not np.allclose(row_sums, 1.0, atol=1e-5):
+            raise ArtifactError("Model probabilities do not sum to one.")
+        return labels, probabilities, classes
 
     def predict(self, text: str, model_name: str | None = None) -> dict[str, Any]:
         """Return the public prediction contract for one complaint narrative."""

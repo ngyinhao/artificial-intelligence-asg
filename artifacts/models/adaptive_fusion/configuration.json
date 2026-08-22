@@ -1,0 +1,57 @@
+{
+  "algorithm": "Adaptive Reliability-Uncertainty Fusion",
+  "alpha": 1.0,
+  "beta": 0.5,
+  "class_reliability": [
+    [
+      0.7899686520376176,
+      0.714987714987715,
+      0.7192008879023307,
+      0.8980891719745223,
+      0.6881143878462913,
+      0.6266866566716641
+    ],
+    [
+      0.8150537634408602,
+      0.7945205479452054,
+      0.8057713651498335,
+      0.9413067552602437,
+      0.7956521739130434,
+      0.8597701149425288
+    ],
+    [
+      0.8,
+      0.7690557451649602,
+      0.7525655644241733,
+      0.9220489977728286,
+      0.7417943107221007,
+      0.8276643990929705
+    ]
+  ],
+  "gamma": 0.2,
+  "labels": [
+    "Credit reporting or other personal consumer reports",
+    "Debt collection",
+    "Credit card",
+    "Mortgage",
+    "Checking or savings account",
+    "Money transfer, virtual currency, or money service"
+  ],
+  "member_names": [
+    "naive_bayes",
+    "linear_svm",
+    "minilm_logreg"
+  ],
+  "selection": {
+    "primary": "validation_macro_f1",
+    "tie_breakers": [
+      "validation_log_loss",
+      "distance_from_neutral_parameters",
+      "gamma",
+      "alpha",
+      "beta"
+    ]
+  },
+  "validation_log_loss": 0.5031221765640649,
+  "validation_macro_f1": 0.8263217330123033
+}

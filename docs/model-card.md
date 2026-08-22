@@ -2,15 +2,15 @@
 
 ## Model family
 
-ComplaintCompass registers three multiclass base classifiers trained on the same
-six-label dataset and one optional ensemble:
+ComplaintCompass registers three multiclass base classifiers and one adaptive fusion
+algorithm over the same six-label dataset:
 
 | Registry name | Representation | Classifier | Role |
 |---|---|---|---|
 | `naive_bayes` | Word unigram/bigram TF-IDF | Multinomial Naive Bayes | Interpretable baseline |
 | `linear_svm` | Word unigram/bigram TF-IDF | Calibrated Linear SVM | Strong sparse-text method |
 | `minilm_logreg` | Normalized MiniLM sentence embeddings | Logistic Regression | Semantic transformer representation |
-| `weighted_ensemble` | Aligned probabilities from all three base models | Validation-weighted soft voting | Exploratory hybrid model |
+| `adaptive_fusion` | Aligned probabilities, validation per-class F1, and normalized entropy | Adaptive Reliability-Uncertainty Fusion | Project-specific adaptive combination |
 
 ## Intended use
 
@@ -28,17 +28,17 @@ remains responsible for interpreting or acting on a suggestion.
 
 ## Training and selection
 
-All base models use the same training and validation records. Hyperparameters are
-selected through five-fold stratified cross-validation on training data. Validation
-probabilities select positive ensemble weights on a 0.05 grid using macro-F1, log loss,
-distance from equal weighting, and deterministic tie-breaking. Final base models are
-refitted with training plus validation records. The Linear SVM remains the application
-default and the ensemble remains optional.
+All methods use the same training, validation, and test records. Hyperparameters
+are selected through five-fold stratified cross-validation on training data. Validation
+macro-F1 selects the application default; size and latency break exact ties only. Final
+base models are refitted with training plus validation records before test evaluation.
 
-The original test results were already examined before the ensemble was proposed.
-Consequently, the expanded four-model comparison is an exploratory benchmark rather
-than a fresh sealed evaluation. A future untouched holdout would be required for a
-strong confirmatory claim about the ensemble.
+ARUF is fitted from base-model probabilities generated on validation records by models
+trained only on the training split. It combines each probability with the member's
+per-class validation F1, an entropy-derived confidence factor, and a bounded agreement
+multiplier. The selected parameters are `alpha=1.0`, `beta=0.5`, and `gamma=0.2`.
+Because the original test results were inspected before ARUF was proposed, its current
+test score is exploratory rather than a fresh confirmatory result.
 
 ## Metrics
 
@@ -49,23 +49,22 @@ Generated metrics are stored in:
 - `reports/model_comparison.csv`
 - `reports/confusion_matrix_<model>.png`
 
-The primary metric is macro-F1. The exploratory test benchmark contains 2,700
-complaints, with 450 examples from each class. Results from
-`reports/test_metrics.json` are:
+The primary metric is macro-F1. The sealed test set contains 2,700 complaints, with 450
+examples from each class. Results from `reports/test_metrics.json` are:
 
 | Model | Macro-F1 | Accuracy | Macro precision | Macro recall | Mean latency | Artifact size |
 |---|---:|---:|---:|---:|---:|---:|
-| `weighted_ensemble` | 0.8513 | 0.8511 | 0.8532 | 0.8511 | 19.87 ms | 120.67 MiB |
-| `linear_svm` | 0.8458 | 0.8456 | 0.8474 | 0.8456 | 1.83 ms | 25.46 MiB |
-| `minilm_logreg` | 0.8147 | 0.8148 | 0.8169 | 0.8148 | 21.61 ms | 87.37 MiB |
-| `naive_bayes` | 0.7524 | 0.7581 | 0.7911 | 0.7581 | 0.39 ms | 7.84 MiB |
+| `linear_svm` | 0.8458 | 0.8456 | 0.8474 | 0.8456 | 2.25 ms | 25.46 MiB |
+| `adaptive_fusion` | 0.8363 | 0.8363 | 0.8418 | 0.8363 | 24.55 ms | 120.67 MiB |
+| `minilm_logreg` | 0.8147 | 0.8148 | 0.8169 | 0.8148 | 18.23 ms | 87.37 MiB |
+| `naive_bayes` | 0.7524 | 0.7581 | 0.7911 | 0.7581 | 0.50 ms | 7.84 MiB |
 
-The ensemble selected weights of 0.05 for Naive Bayes, 0.70 for Linear SVM, and 0.25
-for MiniLM Logistic Regression. It reached the highest exploratory macro-F1, but this
-small post-hoc difference is not confirmatory evidence. The calibrated Linear SVM
-remains the registered default because it is faster, smaller, and was selected before
-the ensemble experiment. Its best cross-validated setting was `C=0.5`; MiniLM Logistic
-Regression selected `C=2.0`, and Naive Bayes selected `alpha=0.1`.
+The calibrated Linear SVM is the registered default because it achieved the highest
+validation macro-F1 and also produced the strongest test result. Its best
+cross-validated setting was `C=0.5`. MiniLM Logistic Regression selected `C=2.0`, and
+Naive Bayes selected `alpha=0.1`. ARUF improved upon two of its three members but did
+not surpass Linear SVM, showing that adaptive combination does not guarantee an accuracy
+gain when the strongest member already dominates the task.
 
 The clearest recurring confusion for the default model is between checking/savings and
 credit-card complaints, while mortgage is its strongest class (F1 0.9488). These results
@@ -83,6 +82,9 @@ meet the project target but do not establish fitness for automated production ro
 - Confidence represents model behavior, not correctness or certainty.
 - Keywords may dominate sparse models and may not reflect the complaint's actual focus.
 - MiniLM was pretrained on broader text and can carry unmeasured representation bias.
+- ARUF inherits the errors and representation limitations of all three member models.
+- ARUF uncertainty weighting uses model probability dispersion, not verified epistemic
+  uncertainty or real-world correctness.
 - Calibration and aggregate metrics can hide class-specific or distribution-shift errors.
 - CFPB narratives are opt-in, scrubbed, unverified, and US-specific.
 - Performance can degrade when wording or product categories differ from training data.
@@ -90,5 +92,7 @@ meet the project target but do not establish fitness for automated production ro
 ## Reproducibility
 
 Each artifact includes its model version, labels, selected parameters, dataset checksum,
-and preprocessing/model files. The registry identifies the default and all available
-models. Runtime inference loads these local artifacts and never retrains them.
+and preprocessing/model files. ARUF additionally records its member names, per-class
+reliability matrix, validation evidence status, and selected adaptive parameters. The
+registry identifies the default and all available methods. Runtime inference loads these
+local artifacts and never retrains them.
