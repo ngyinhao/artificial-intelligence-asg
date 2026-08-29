@@ -42,7 +42,6 @@ def _metric_frame(payload: dict[str, dict[str, Any]]) -> pd.DataFrame:
                 "Macro precision": metrics.get("macro_precision"),
                 "Macro recall": metrics.get("macro_recall"),
                 "Macro F1": metrics.get("macro_f1"),
-                "Weighted F1": metrics.get("weighted_f1"),
                 "Size (MB)": (
                     metrics.get("artifact_size_bytes", 0) / 1_048_576
                 ),
@@ -149,7 +148,6 @@ def _comparison_tab() -> None:
             "Macro precision": st.column_config.NumberColumn(format="%.4f"),
             "Macro recall": st.column_config.NumberColumn(format="%.4f"),
             "Macro F1": st.column_config.NumberColumn(format="%.4f"),
-            "Weighted F1": st.column_config.NumberColumn(format="%.4f"),
             "Size (MB)": st.column_config.NumberColumn(format="%.1f"),
             "Latency (ms/text)": st.column_config.NumberColumn(format="%.2f"),
         },

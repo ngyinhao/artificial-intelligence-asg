@@ -7,6 +7,7 @@ import joblib
 import numpy as np
 from streamlit.testing.v1 import AppTest
 
+from app import _metric_frame
 from complaint_compass.config import PRODUCT_LABELS
 
 
@@ -53,6 +54,22 @@ def test_app_reports_missing_artifacts_without_crashing(
     assert not app.exception
     assert app.error
     assert "Model registry not found" in app.error[0].value
+
+
+def test_metric_frame_omits_weighted_f1() -> None:
+    frame = _metric_frame(
+        {
+            "example": {
+                "accuracy": 0.8,
+                "macro_precision": 0.8,
+                "macro_recall": 0.8,
+                "macro_f1": 0.8,
+                "weighted_f1": 0.9,
+            }
+        }
+    )
+
+    assert "Weighted F1" not in frame.columns
 
 
 def test_app_classifies_with_a_registered_artifact(
