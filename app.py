@@ -119,7 +119,7 @@ def _classify_tab(predictor: ComplaintPredictor) -> None:
             return
 
         st.success(result["label"])
-        st.metric("Model confidence", f"{result['confidence']:.1%}")
+        st.metric("Model confidence", f"{result['confidence']:.4%}")
         chart = pd.DataFrame(result["top_categories"]).set_index("label")
         st.caption("Top three candidate categories")
         st.bar_chart(chart["probability"], horizontal=True)
@@ -145,11 +145,11 @@ def _comparison_tab() -> None:
         hide_index=True,
         width="stretch",
         column_config={
-            "Accuracy": st.column_config.NumberColumn(format="%.3f"),
-            "Macro precision": st.column_config.NumberColumn(format="%.3f"),
-            "Macro recall": st.column_config.NumberColumn(format="%.3f"),
-            "Macro F1": st.column_config.NumberColumn(format="%.3f"),
-            "Weighted F1": st.column_config.NumberColumn(format="%.3f"),
+            "Accuracy": st.column_config.NumberColumn(format="%.4f"),
+            "Macro precision": st.column_config.NumberColumn(format="%.4f"),
+            "Macro recall": st.column_config.NumberColumn(format="%.4f"),
+            "Macro F1": st.column_config.NumberColumn(format="%.4f"),
+            "Weighted F1": st.column_config.NumberColumn(format="%.4f"),
             "Size (MB)": st.column_config.NumberColumn(format="%.1f"),
             "Latency (ms/text)": st.column_config.NumberColumn(format="%.2f"),
         },

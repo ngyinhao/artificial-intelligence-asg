@@ -68,4 +68,4 @@ def test_app_classifies_with_a_registered_artifact(
     app.button[0].click().run(timeout=30)
     assert not app.exception
     assert app.success[0].value == PRODUCT_LABELS[5]
-    assert app.metric[0].value == "50.0%"
+    assert app.metric[0].value == "50.0000%"
