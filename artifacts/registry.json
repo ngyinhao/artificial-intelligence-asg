@@ -7,19 +7,19 @@
     "weighted_ensemble"
   ],
   "dataset_manifest": "data/processed/dataset_manifest.json",
-  "dataset_sha256": "8727affded9c28e0e3886264c34a53a8a7705d81216bd5d744f943a6cf3d7719",
+  "dataset_sha256": "8b23f49dba99f39a1a89ac2a9968dfb3d89ef399004a65145533f829ddd5091c",
   "default_model": "weighted_ensemble",
   "model_version": "1.1.0",
   "models": {
     "adaptive_fusion": {
-      "artifact_size_bytes": 126528600,
+      "artifact_size_bytes": 126523031,
       "best_params": {
-        "alpha": 1.0,
+        "alpha": 2.0,
         "beta": 0.5,
         "gamma": 0.2
       },
       "configuration_file": "configuration.json",
-      "dataset_sha256": "8727affded9c28e0e3886264c34a53a8a7705d81216bd5d744f943a6cf3d7719",
+      "dataset_sha256": "8b23f49dba99f39a1a89ac2a9968dfb3d89ef399004a65145533f829ddd5091c",
       "description": "Adaptive Reliability-Uncertainty Fusion of all three base models",
       "evidence_split": "validation",
       "evidence_status": "exploratory; confirm on a fresh untouched holdout",
@@ -41,11 +41,11 @@
       "model_version": "1.1.0"
     },
     "linear_svm": {
-      "artifact_size_bytes": 26698623,
+      "artifact_size_bytes": 26693567,
       "best_params": {
         "model__C": 0.5
       },
-      "dataset_sha256": "8727affded9c28e0e3886264c34a53a8a7705d81216bd5d744f943a6cf3d7719",
+      "dataset_sha256": "8b23f49dba99f39a1a89ac2a9968dfb3d89ef399004a65145533f829ddd5091c",
       "description": "Calibrated Linear SVM with word unigram/bigram TF-IDF",
       "kind": "sklearn",
       "labels": [
@@ -66,7 +66,7 @@
         "C": 2.0
       },
       "classifier_file": "classifier.joblib",
-      "dataset_sha256": "8727affded9c28e0e3886264c34a53a8a7705d81216bd5d744f943a6cf3d7719",
+      "dataset_sha256": "8b23f49dba99f39a1a89ac2a9968dfb3d89ef399004a65145533f829ddd5091c",
       "description": "all-MiniLM-L6-v2 sentence embeddings with Logistic Regression",
       "encoder_directory": "encoder",
       "encoder_source": "sentence-transformers/all-MiniLM-L6-v2",
@@ -83,11 +83,11 @@
       "model_version": "1.1.0"
     },
     "naive_bayes": {
-      "artifact_size_bytes": 8218557,
+      "artifact_size_bytes": 8218029,
       "best_params": {
         "model__alpha": 0.1
       },
-      "dataset_sha256": "8727affded9c28e0e3886264c34a53a8a7705d81216bd5d744f943a6cf3d7719",
+      "dataset_sha256": "8b23f49dba99f39a1a89ac2a9968dfb3d89ef399004a65145533f829ddd5091c",
       "description": "Multinomial Naive Bayes with word unigram/bigram TF-IDF",
       "kind": "sklearn",
       "labels": [
@@ -103,13 +103,13 @@
       "model_version": "1.1.0"
     },
     "weighted_ensemble": {
-      "artifact_size_bytes": 126527438,
+      "artifact_size_bytes": 126521855,
       "base_models": [
         "naive_bayes",
         "linear_svm",
         "minilm_logreg"
       ],
-      "dataset_sha256": "8727affded9c28e0e3886264c34a53a8a7705d81216bd5d744f943a6cf3d7719",
+      "dataset_sha256": "8b23f49dba99f39a1a89ac2a9968dfb3d89ef399004a65145533f829ddd5091c",
       "description": "Validation-weighted soft-voting ensemble of all three base models",
       "kind": "ensemble",
       "labels": [
@@ -123,12 +123,12 @@
       "model_name": "weighted_ensemble",
       "model_version": "1.1.0",
       "selection_metric": "macro_f1",
-      "validation_log_loss": 0.4945893142791154,
-      "validation_macro_f1": 0.842474905197507,
+      "validation_log_loss": 0.5085920014002215,
+      "validation_macro_f1": 0.8369871167871534,
       "weight_search_step": 0.05,
       "weights": {
-        "linear_svm": 0.7,
-        "minilm_logreg": 0.25,
+        "linear_svm": 0.65,
+        "minilm_logreg": 0.3,
         "naive_bayes": 0.05
       }
     }

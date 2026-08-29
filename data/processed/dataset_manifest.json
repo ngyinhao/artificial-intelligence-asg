@@ -15,8 +15,18 @@
     "Checking or savings account",
     "Money transfer, virtual currency, or money service"
   ],
+  "near_duplicate_grouping": {
+    "cross_split_group_count": 0,
+    "group_count": 16342,
+    "largest_group_size": 571,
+    "max_features": 100000,
+    "method": "word TF-IDF cosine connected components (unigrams and bigrams)",
+    "min_document_frequency": 1,
+    "multi_record_group_count": 278,
+    "similarity_threshold": 0.9
+  },
   "processed_rows": 18000,
-  "processed_sha256": "8727affded9c28e0e3886264c34a53a8a7705d81216bd5d744f943a6cf3d7719",
+  "processed_sha256": "8b23f49dba99f39a1a89ac2a9968dfb3d89ef399004a65145533f829ddd5091c",
   "sample_per_class": 3000,
   "seed": 42,
   "source_manifest": "data\\raw\\download_manifest.json",

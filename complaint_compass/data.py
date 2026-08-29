@@ -17,6 +17,8 @@ import numpy as np
 import pandas as pd
 import requests
 from requests.adapters import HTTPAdapter
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.neighbors import radius_neighbors_graph
 from urllib3.util.retry import Retry
 
 from .config import (
@@ -28,6 +30,9 @@ from .config import (
     DATASET_MANIFEST_PATH,
     DATE_WINDOWS,
     DOWNLOAD_MANIFEST_PATH,
+    NEAR_DUPLICATE_MAX_FEATURES,
+    NEAR_DUPLICATE_MIN_DOCUMENT_FREQUENCY,
+    NEAR_DUPLICATE_SIMILARITY_THRESHOLD,
     POOL_PER_WINDOW,
     PROJECT_ROOT,
     PROCESSED_DATA_PATH,
@@ -459,6 +464,151 @@ def _split_counts(size: int) -> tuple[int, int, int]:
     return train, validation, test
 
 
+def _near_duplicate_group_ids(
+    texts: Iterable[str],
+    *,
+    threshold: float = NEAR_DUPLICATE_SIMILARITY_THRESHOLD,
+) -> np.ndarray:
+    """Return deterministic connected-component IDs for highly similar texts."""
+
+    values = list(texts)
+    if not values:
+        return np.array([], dtype=np.int64)
+    if not 0 < threshold <= 1:
+        raise ValueError("Near-duplicate threshold must be in (0, 1].")
+
+    vectorizer = TfidfVectorizer(
+        analyzer="word",
+        ngram_range=(1, 2),
+        min_df=NEAR_DUPLICATE_MIN_DOCUMENT_FREQUENCY,
+        max_features=NEAR_DUPLICATE_MAX_FEATURES,
+        sublinear_tf=True,
+        norm="l2",
+    )
+    matrix = vectorizer.fit_transform(values)
+    adjacency = radius_neighbors_graph(
+        matrix,
+        radius=(1.0 - threshold) + 1e-12,
+        mode="connectivity",
+        metric="cosine",
+        include_self=False,
+        n_jobs=-1,
+    ).tocsr()
+
+    parents = np.arange(len(values), dtype=np.int64)
+
+    def find(item: int) -> int:
+        while parents[item] != item:
+            parents[item] = parents[parents[item]]
+            item = int(parents[item])
+        return item
+
+    def union(left: int, right: int) -> None:
+        left_root = find(left)
+        right_root = find(right)
+        if left_root != right_root:
+            parents[max(left_root, right_root)] = min(left_root, right_root)
+
+    for row in range(adjacency.shape[0]):
+        for column in adjacency.indices[adjacency.indptr[row] : adjacency.indptr[row + 1]]:
+            union(row, int(column))
+
+    roots = np.array([find(index) for index in range(len(values))])
+    _, group_ids = np.unique(roots, return_inverse=True)
+    return group_ids.astype(np.int64)
+
+
+def _assign_similarity_groups(
+    sampled: pd.DataFrame,
+    *,
+    labels: tuple[str, ...],
+    seed: int,
+) -> pd.Series:
+    """Assign whole similarity groups while retaining exact stratified counts."""
+
+    split_names = ("train", "validation", "test")
+    targets = {
+        label: dict(
+            zip(
+                split_names,
+                _split_counts(int((sampled["product"] == label).sum())),
+            )
+        )
+        for label in labels
+    }
+    assignments: dict[int, str] = {}
+    used = {label: {split: 0 for split in split_names} for label in labels}
+    group_counts = (
+        sampled.groupby(["similarity_group", "product"]).size().unstack(fill_value=0)
+    )
+    for label in labels:
+        if label not in group_counts:
+            group_counts[label] = 0
+    group_counts = group_counts.loc[:, list(labels)]
+
+    rng = np.random.default_rng(seed)
+    groups = list(group_counts.index)
+    rng.shuffle(groups)
+    groups.sort(key=lambda group: int(group_counts.loc[group].sum()), reverse=True)
+
+    # Allocate multi-record groups first. Singleton groups can then fill every
+    # remaining class/split capacity exactly.
+    multi_groups = [
+        group for group in groups if int(group_counts.loc[group].sum()) > 1
+    ]
+    singleton_groups = [
+        group for group in groups if int(group_counts.loc[group].sum()) == 1
+    ]
+    for group in multi_groups:
+        counts = group_counts.loc[group]
+        feasible = [
+            split
+            for split in split_names
+            if all(
+                used[label][split] + int(counts[label])
+                <= targets[label][split]
+                for label in labels
+            )
+        ]
+        if not feasible:
+            raise DataQualityError(
+                "A near-duplicate group is too large for the requested stratified split. "
+                "Increase the candidate pool, lower the per-class sample, or "
+                "review the similarity threshold."
+            )
+        split = min(
+            feasible,
+            key=lambda candidate: sum(
+                ((used[label][candidate] + int(counts[label])) / targets[label][candidate]) ** 2
+                for label in labels
+                if targets[label][candidate]
+            ),
+        )
+        assignments[int(group)] = split
+        for label in labels:
+            used[label][split] += int(counts[label])
+
+    for group in singleton_groups:
+        counts = group_counts.loc[group]
+        label = next(label for label in labels if int(counts[label]) == 1)
+        feasible = [
+            split
+            for split in split_names
+            if used[label][split] < targets[label][split]
+        ]
+        if not feasible:
+            raise DataQualityError("Unable to complete the exact stratified grouped split.")
+        split = min(
+            feasible,
+            key=lambda candidate: used[label][candidate]
+            / targets[label][candidate],
+        )
+        assignments[int(group)] = split
+        used[label][split] += 1
+
+    return sampled["similarity_group"].map(assignments)
+
+
 def prepare_dataset_frame(
     source: pd.DataFrame,
     *,
@@ -505,20 +655,12 @@ def prepare_dataset_frame(
         sampled_parts.append(group.sample(n=sample_per_class, random_state=seed))
     sampled = pd.concat(sampled_parts, ignore_index=True)
 
-    rng = np.random.default_rng(seed)
-    split_parts: list[pd.DataFrame] = []
-    for label in labels:
-        group = sampled.loc[sampled["product"] == label].copy()
-        group = group.iloc[rng.permutation(len(group))].reset_index(drop=True)
-        train_size, validation_size, _ = _split_counts(len(group))
-        group["split"] = "test"
-        group.loc[: train_size - 1, "split"] = "train"
-        group.loc[
-            train_size : train_size + validation_size - 1, "split"
-        ] = "validation"
-        split_parts.append(group)
+    sampled["similarity_group"] = _near_duplicate_group_ids(sampled["text"])
+    sampled["split"] = _assign_similarity_groups(sampled, labels=labels, seed=seed)
+    if sampled["split"].isna().any():
+        raise DataQualityError("Some similarity groups were not assigned to a split.")
 
-    prepared = pd.concat(split_parts, ignore_index=True)
+    prepared = sampled
     prepared = prepared.rename(columns={"product": "label"})
     prepared = prepared[
         [
@@ -526,6 +668,7 @@ def prepare_dataset_frame(
             "date_received",
             "text",
             "text_sha256",
+            "similarity_group",
             "label",
             "split",
         ]
@@ -565,6 +708,20 @@ def prepare_dataset(
         "class_counts": {
             str(key): int(value)
             for key, value in prepared.groupby("label").size().items()
+        },
+        "near_duplicate_grouping": {
+            "method": "word TF-IDF cosine connected components (unigrams and bigrams)",
+            "similarity_threshold": NEAR_DUPLICATE_SIMILARITY_THRESHOLD,
+            "max_features": NEAR_DUPLICATE_MAX_FEATURES,
+            "min_document_frequency": NEAR_DUPLICATE_MIN_DOCUMENT_FREQUENCY,
+            "group_count": int(prepared["similarity_group"].nunique()),
+            "multi_record_group_count": int(
+                (prepared.groupby("similarity_group").size() > 1).sum()
+            ),
+            "largest_group_size": int(prepared.groupby("similarity_group").size().max()),
+            "cross_split_group_count": int(
+                (prepared.groupby("similarity_group")["split"].nunique() > 1).sum()
+            ),
         },
         "processed_sha256": file_sha256(output_path),
     }

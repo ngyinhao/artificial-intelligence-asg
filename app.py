@@ -119,7 +119,7 @@ def _classify_tab(predictor: ComplaintPredictor) -> None:
             return
 
         st.success(result["label"])
-        st.metric("Calibrated confidence", f"{result['confidence']:.1%}")
+        st.metric("Model confidence", f"{result['confidence']:.1%}")
         chart = pd.DataFrame(result["top_categories"]).set_index("label")
         st.caption("Top three candidate categories")
         st.bar_chart(chart["probability"], horizontal=True)

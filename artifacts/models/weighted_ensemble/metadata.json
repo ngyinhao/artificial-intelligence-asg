@@ -1,11 +1,11 @@
 {
-  "artifact_size_bytes": 126527438,
+  "artifact_size_bytes": 126521855,
   "base_models": [
     "naive_bayes",
     "linear_svm",
     "minilm_logreg"
   ],
-  "dataset_sha256": "8727affded9c28e0e3886264c34a53a8a7705d81216bd5d744f943a6cf3d7719",
+  "dataset_sha256": "8b23f49dba99f39a1a89ac2a9968dfb3d89ef399004a65145533f829ddd5091c",
   "description": "Validation-weighted soft-voting ensemble of all three base models",
   "kind": "ensemble",
   "labels": [
@@ -19,12 +19,12 @@
   "model_name": "weighted_ensemble",
   "model_version": "1.1.0",
   "selection_metric": "macro_f1",
-  "validation_log_loss": 0.4945893142791154,
-  "validation_macro_f1": 0.842474905197507,
+  "validation_log_loss": 0.5085920014002215,
+  "validation_macro_f1": 0.8369871167871534,
   "weight_search_step": 0.05,
   "weights": {
-    "linear_svm": 0.7,
-    "minilm_logreg": 0.25,
+    "linear_svm": 0.65,
+    "minilm_logreg": 0.3,
     "naive_bayes": 0.05
   }
 }

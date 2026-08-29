@@ -1,9 +1,9 @@
 {
-  "artifact_size_bytes": 8218557,
+  "artifact_size_bytes": 8218029,
   "best_params": {
     "model__alpha": 0.1
   },
-  "dataset_sha256": "8727affded9c28e0e3886264c34a53a8a7705d81216bd5d744f943a6cf3d7719",
+  "dataset_sha256": "8b23f49dba99f39a1a89ac2a9968dfb3d89ef399004a65145533f829ddd5091c",
   "description": "Multinomial Naive Bayes with word unigram/bigram TF-IDF",
   "kind": "sklearn",
   "labels": [

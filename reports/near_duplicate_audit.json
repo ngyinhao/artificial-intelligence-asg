@@ -1,0 +1,189 @@
+{
+  "method": "word TF-IDF cosine similarity (unigrams and bigrams)",
+  "threshold": 0.9,
+  "dataset_rows": 18000,
+  "vocabulary_size": 100000,
+  "comparisons": [
+    {
+      "reference_split": "train",
+      "query_split": "validation",
+      "query_count": 2700,
+      "pairs_at_or_above_threshold": 0,
+      "pairs_at_or_above_0_95": 0,
+      "maximum_similarity": 0.8996902864396225,
+      "top_pairs": [
+        {
+          "query_complaint_id": "16425048",
+          "reference_complaint_id": "11556685",
+          "cosine_similarity": 0.8996902864396225
+        },
+        {
+          "query_complaint_id": "14189474",
+          "reference_complaint_id": "10781550",
+          "cosine_similarity": 0.8994677128554736
+        },
+        {
+          "query_complaint_id": "11492019",
+          "reference_complaint_id": "11639677",
+          "cosine_similarity": 0.8992621563331175
+        },
+        {
+          "query_complaint_id": "11572206",
+          "reference_complaint_id": "11623339",
+          "cosine_similarity": 0.899197634418641
+        },
+        {
+          "query_complaint_id": "11644717",
+          "reference_complaint_id": "11572306",
+          "cosine_similarity": 0.89890252003957
+        },
+        {
+          "query_complaint_id": "11480635",
+          "reference_complaint_id": "11490374",
+          "cosine_similarity": 0.8981003216217921
+        },
+        {
+          "query_complaint_id": "7802558",
+          "reference_complaint_id": "7815653",
+          "cosine_similarity": 0.8977407046405151
+        },
+        {
+          "query_complaint_id": "8644272",
+          "reference_complaint_id": "8172777",
+          "cosine_similarity": 0.8968356403747745
+        },
+        {
+          "query_complaint_id": "12232240",
+          "reference_complaint_id": "13759909",
+          "cosine_similarity": 0.8964440046601437
+        },
+        {
+          "query_complaint_id": "15204627",
+          "reference_complaint_id": "15063357",
+          "cosine_similarity": 0.896110676393107
+        }
+      ]
+    },
+    {
+      "reference_split": "train",
+      "query_split": "test",
+      "query_count": 2700,
+      "pairs_at_or_above_threshold": 0,
+      "pairs_at_or_above_0_95": 0,
+      "maximum_similarity": 0.8983391376022503,
+      "top_pairs": [
+        {
+          "query_complaint_id": "11541819",
+          "reference_complaint_id": "11375912",
+          "cosine_similarity": 0.8983391376022503
+        },
+        {
+          "query_complaint_id": "10521670",
+          "reference_complaint_id": "10431770",
+          "cosine_similarity": 0.8971790202819132
+        },
+        {
+          "query_complaint_id": "7472731",
+          "reference_complaint_id": "9960391",
+          "cosine_similarity": 0.8945080007028218
+        },
+        {
+          "query_complaint_id": "11635676",
+          "reference_complaint_id": "11641170",
+          "cosine_similarity": 0.8930250455106179
+        },
+        {
+          "query_complaint_id": "7720964",
+          "reference_complaint_id": "9134665",
+          "cosine_similarity": 0.8915296618738572
+        },
+        {
+          "query_complaint_id": "11750333",
+          "reference_complaint_id": "11654444",
+          "cosine_similarity": 0.8902179552614082
+        },
+        {
+          "query_complaint_id": "16126681",
+          "reference_complaint_id": "17191939",
+          "cosine_similarity": 0.8900434467923253
+        },
+        {
+          "query_complaint_id": "18078007",
+          "reference_complaint_id": "17191939",
+          "cosine_similarity": 0.8900434467923253
+        },
+        {
+          "query_complaint_id": "18344831",
+          "reference_complaint_id": "17191939",
+          "cosine_similarity": 0.8900434467923253
+        },
+        {
+          "query_complaint_id": "15488507",
+          "reference_complaint_id": "17191939",
+          "cosine_similarity": 0.8900434467923253
+        }
+      ]
+    },
+    {
+      "reference_split": "validation",
+      "query_split": "test",
+      "query_count": 2700,
+      "pairs_at_or_above_threshold": 0,
+      "pairs_at_or_above_0_95": 0,
+      "maximum_similarity": 0.892722915292538,
+      "top_pairs": [
+        {
+          "query_complaint_id": "9244357",
+          "reference_complaint_id": "9246032",
+          "cosine_similarity": 0.892722915292538
+        },
+        {
+          "query_complaint_id": "11808873",
+          "reference_complaint_id": "9770489",
+          "cosine_similarity": 0.8924207920686531
+        },
+        {
+          "query_complaint_id": "11481348",
+          "reference_complaint_id": "11492019",
+          "cosine_similarity": 0.8822153806239356
+        },
+        {
+          "query_complaint_id": "10965499",
+          "reference_complaint_id": "13409640",
+          "cosine_similarity": 0.8775089421404083
+        },
+        {
+          "query_complaint_id": "11626305",
+          "reference_complaint_id": "11520648",
+          "cosine_similarity": 0.872180439776695
+        },
+        {
+          "query_complaint_id": "8833659",
+          "reference_complaint_id": "8114310",
+          "cosine_similarity": 0.8640652937021522
+        },
+        {
+          "query_complaint_id": "7688362",
+          "reference_complaint_id": "8114310",
+          "cosine_similarity": 0.863926876041695
+        },
+        {
+          "query_complaint_id": "8318430",
+          "reference_complaint_id": "8114310",
+          "cosine_similarity": 0.8631011578076075
+        },
+        {
+          "query_complaint_id": "9242089",
+          "reference_complaint_id": "8114310",
+          "cosine_similarity": 0.8600664413649434
+        },
+        {
+          "query_complaint_id": "18078007",
+          "reference_complaint_id": "15144094",
+          "cosine_similarity": 0.8582886777252577
+        }
+      ]
+    }
+  ],
+  "interpretation": "A screening audit for highly similar cross-split narratives; it is not a semantic duplicate detector and should be repeated if preprocessing or splitting changes."
+}

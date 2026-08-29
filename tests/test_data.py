@@ -12,6 +12,7 @@ from complaint_compass.data import (
     DataQualityError,
     _discover_remote_size,
     _fetch_window,
+    _near_duplicate_group_ids,
     _parse_csv_range,
     _records_frame,
     _range_offsets,
@@ -24,14 +25,14 @@ def source_frame(rows_per_label: int = 7) -> pd.DataFrame:
     complaint_id = 1
     for label in PRODUCT_LABELS:
         for index in range(rows_per_label):
+            unique_terms = " ".join(
+                f"case{complaint_id}term{offset}" for offset in range(30)
+            )
             rows.append(
                 {
                     "complaint_id": str(complaint_id),
                     "date_received": "2024-01-01",
-                    "narrative": (
-                        f"This is complaint number {index} about {label}; "
-                        "the requested resolution did not occur."
-                    ),
+                    "narrative": f"{label} complaint {unique_terms}",
                     "product": label,
                 }
             )
@@ -52,7 +53,39 @@ def test_prepare_dataset_is_balanced_leak_free_and_reproducible() -> None:
         "validation": {label: 1 for label in PRODUCT_LABELS},
     }
     assert first["text_sha256"].is_unique
+    assert first.groupby("similarity_group")["split"].nunique().eq(1).all()
     assert first["complaint_id"].tolist() == second["complaint_id"].tolist()
+
+
+def test_near_duplicate_narratives_are_kept_in_one_split() -> None:
+    source = source_frame(rows_per_label=8)
+    label = PRODUCT_LABELS[0]
+    source.loc[0, "narrative"] = (
+        "My bank repeatedly charged the same incorrect account maintenance fee "
+        "and has not corrected the account after several requests."
+    )
+    source.loc[1, "narrative"] = (
+        "My bank repeatedly charged the same incorrect account maintenance fee "
+        "and has not corrected the account after several written requests."
+    )
+
+    prepared = prepare_dataset_frame(source, sample_per_class=8, seed=42)
+    pair = prepared.loc[prepared["complaint_id"].isin(["1", "2"])]
+
+    assert pair["similarity_group"].nunique() == 1
+    assert pair["split"].nunique() == 1
+
+
+def test_near_duplicate_grouping_is_transitive() -> None:
+    texts = [
+        "alpha beta gamma delta epsilon zeta eta theta",
+        "alpha beta gamma delta epsilon zeta eta theta extra",
+        "alpha beta gamma delta epsilon zeta eta theta extra words",
+        "completely unrelated consumer mortgage servicing narrative",
+    ]
+    groups = _near_duplicate_group_ids(texts, threshold=0.70)
+    assert groups[0] == groups[1] == groups[2]
+    assert groups[3] != groups[0]
 
 
 def test_prepare_dataset_removes_conflicting_duplicate_text() -> None:
